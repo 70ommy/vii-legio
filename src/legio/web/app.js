@@ -1,0 +1,599 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Consolle dello Spazio Computer. Disegna la TABULA SPATII e parla col terminale.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const $ = (selettore) => document.querySelector(selettore);
+const esc = (testo) => String(testo ?? '').replace(/[&<>"]/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
+));
+
+const stato = {
+  dati: null,
+  vistaMappa: 'settori',
+  selezione: null,
+  tabelle: null,
+};
+
+const CELLA_SETTORI = 22;
+const CELLA_STEREO = 20;
+const ISO_X = 0.87;   // schiacciamento orizzontale della proiezione
+const ISO_Y = 0.28;   // schiacciamento verticale: piani sottili, impilabili
+const MARGINE_SX = 19;
+const MARGINE_SU = 32;
+const DIVARIO_SETTORI = 28;
+
+/* ───────────────────────────── terminale ───────────────────────────── */
+
+async function chiama(percorso, corpo) {
+  const opzioni = corpo === undefined
+    ? {}
+    : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) };
+  const risposta = await fetch(percorso, opzioni);
+  const dati = await risposta.json();
+  if (!risposta.ok) throw new Error(dati.errore || `guasto del terminale (${risposta.status})`);
+  return dati;
+}
+
+let temporizzatoreAvviso = null;
+function avvisa(testo, tipo = 'errore') {
+  const nodo = $('#avviso');
+  nodo.textContent = testo;
+  nodo.classList.toggle('esito', tipo === 'esito');
+  nodo.classList.add('visibile');
+  clearTimeout(temporizzatoreAvviso);
+  temporizzatoreAvviso = setTimeout(() => nodo.classList.remove('visibile'), tipo === 'esito' ? 4200 : 8000);
+}
+
+/* ───────────────────────────── frasario ───────────────────────────── */
+
+const GRADI = ['I', 'I-bis', 'II', 'III', 'IV'];
+
+function fraseInfo(livello, i) {
+  switch (livello) {
+    case 'I': return `Pianeta ${i.tipo} (${i.codice}) — ${i.classe}. ${i.ambiente}`;
+    case 'I-bis': return `Radioattività ${i.radioattivita}. ${i.nota_radio}`;
+    case 'II': return `Si dichiarano forme di vita ${i.vita}.`;
+    case 'III': return i.terminale ? (i.esito_finale || 'Pianeta deserto.') : `Si dichiarano ${i.sapienza}.`;
+    case 'IV': return `Razza: ${i.razza} — riferimento G.I. n. ${i.rif_gi}.`;
+    default: return '';
+  }
+}
+
+/* ───────────────────────────── disegno: quattro settori ───────────────────────────── */
+
+function larghezzaSettore(lato) { return MARGINE_SX + lato * CELLA_SETTORI + 10; }
+function altezzaSettore(lato) { return MARGINE_SU + lato * CELLA_SETTORI + 16; }
+
+function originaSettore(livello, lato) {
+  const colonna = livello % 2;
+  const riga = Math.floor(livello / 2);
+  return {
+    ox: colonna * (larghezzaSettore(lato) + DIVARIO_SETTORI),
+    oy: riga * (altezzaSettore(lato) + DIVARIO_SETTORI),
+  };
+}
+
+function centroCella(livello, x, y, lato) {
+  const { ox, oy } = originaSettore(livello, lato);
+  return {
+    cx: ox + MARGINE_SX + x * CELLA_SETTORI + CELLA_SETTORI / 2,
+    cy: oy + MARGINE_SU + y * CELLA_SETTORI + CELLA_SETTORI / 2,
+  };
+}
+
+function disegnaSettori(dati) {
+  const g = dati.galassia;
+  const lato = g.lato;
+  const largo = larghezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const alto = altezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const pezzi = [];
+
+  for (let livello = 0; livello < 4; livello += 1) {
+    const { ox, oy } = originaSettore(livello, lato);
+    const x0 = ox + MARGINE_SX;
+    const y0 = oy + MARGINE_SU;
+    const dim = lato * CELLA_SETTORI;
+
+    pezzi.push(`<g>`);
+    pezzi.push(`<rect class="fondo-settore" x="${x0}" y="${y0}" width="${dim}" height="${dim}"/>`);
+    for (let k = 0; k <= lato; k += 1) {
+      const forte = k % 4 === 0 ? ' reticolo-forte' : '';
+      pezzi.push(`<line class="reticolo${forte}" x1="${x0 + k * CELLA_SETTORI}" y1="${y0}" x2="${x0 + k * CELLA_SETTORI}" y2="${y0 + dim}"/>`);
+      pezzi.push(`<line class="reticolo${forte}" x1="${x0}" y1="${y0 + k * CELLA_SETTORI}" x2="${x0 + dim}" y2="${y0 + k * CELLA_SETTORI}"/>`);
+    }
+    pezzi.push(`<rect class="cornice-settore" x="${x0}" y="${y0}" width="${dim}" height="${dim}"/>`);
+    pezzi.push(`<text class="etichetta-settore" x="${x0}" y="${oy + 12}">SETTORE ${esc(g.nomi_livello[livello])}</text>`);
+
+    for (let x = 0; x < lato; x += 1) {
+      pezzi.push(`<text class="coordinata" x="${x0 + x * CELLA_SETTORI + CELLA_SETTORI / 2}" y="${y0 - 5}" text-anchor="middle">${g.lettere[x]}</text>`);
+    }
+    for (let y = 0; y < lato; y += 1) {
+      pezzi.push(`<text class="coordinata" x="${x0 - 4}" y="${y0 + y * CELLA_SETTORI + CELLA_SETTORI / 2 + 3}" text-anchor="end">${y + 1}</text>`);
+    }
+    pezzi.push(`</g>`);
+  }
+
+  pezzi.push(disegnaGittate(dati, lato));
+  pezzi.push(disegnaRotte(dati, lato));
+  pezzi.push(disegnaSistemi(dati, lato));
+  pezzi.push(disegnaSegnalini(dati, lato));
+
+  return `<svg viewBox="-6 -4 ${largo + 12} ${alto + 10}" role="img" aria-label="Tabula Spatii">${pezzi.join('')}</svg>`;
+}
+
+function disegnaSistemi(dati, lato) {
+  return dati.galassia.pianeti.map((p) => {
+    const { cx, cy } = centroCella(p.livello, p.x, p.y, lato);
+    const scelto = stato.selezione === p.id;
+    const parti = [`<g class="sistema" data-pianeta="${esc(p.id)}">`];
+    parti.push(`<circle class="alone" cx="${cx}" cy="${cy}" r="10" fill="rgba(255,194,71,.18)"/>`);
+
+    if (p.base) {
+      parti.push(`<circle class="anello-base" cx="${cx}" cy="${cy}" r="8.5"/>`);
+      parti.push(`<circle class="disco-base" cx="${cx}" cy="${cy}" r="5.2"/>`);
+      parti.push(`<text class="lettera-base" x="${cx}" y="${cy + 2.6}" text-anchor="middle">B</text>`);
+    } else if (p.noto) {
+      parti.push(`<circle class="disco-noto" cx="${cx}" cy="${cy}" r="4.4"/>`);
+      parti.push(`<circle cx="${cx}" cy="${cy}" r="7" fill="none" stroke="rgba(72,216,224,.35)" stroke-width=".8"/>`);
+    } else {
+      parti.push(`<circle class="disco-ignoto" cx="${cx}" cy="${cy}" r="4.2"/>`);
+    }
+
+    if (p.barrato) {
+      parti.push(`<line class="croce-barrato" x1="${cx - 6}" y1="${cy - 6}" x2="${cx + 6}" y2="${cy + 6}"/>`);
+      parti.push(`<line class="croce-barrato" x1="${cx + 6}" y1="${cy - 6}" x2="${cx - 6}" y2="${cy + 6}"/>`);
+    }
+    if (scelto) parti.push(`<circle class="selezionato" cx="${cx}" cy="${cy}" r="11"/>`);
+
+    const nome = p.informazioni?.tipo ? `${p.informazioni.tipo} (${p.informazioni.codice})` : '';
+    parti.push(`<text class="sigla-sistema" x="${cx}" y="${cy + 15}" text-anchor="middle">${esc(p.sigla)}</text>`);
+    if (nome) parti.push(`<text class="nome-sistema" x="${cx}" y="${cy + 22.5}" text-anchor="middle">${esc(nome)}</text>`);
+    parti.push(`<title>${esc(p.id)} — ${esc(p.base ? 'PIANETA BASE' : (p.informazioni?.razza || nome || 'nessuna notizia'))}</title>`);
+    parti.push('</g>');
+    return parti.join('');
+  }).join('');
+}
+
+function disegnaGittate(dati, lato) {
+  // La gittata e' un quadrato di raggio pari al numero di radar, ritagliato sul settore.
+  return dati.navi.map((n) => {
+    if (!n.radar) return '';
+    const { ox, oy } = originaSettore(n.posizione.livello, lato);
+    const x0 = ox + MARGINE_SX;
+    const y0 = oy + MARGINE_SU;
+    const sinistra = Math.max(0, n.posizione.x - n.radar);
+    const sopra = Math.max(0, n.posizione.y - n.radar);
+    const destra = Math.min(lato - 1, n.posizione.x + n.radar);
+    const sotto = Math.min(lato - 1, n.posizione.y + n.radar);
+    return `<rect class="gittata-radar"
+      x="${x0 + sinistra * CELLA_SETTORI}" y="${y0 + sopra * CELLA_SETTORI}"
+      width="${(destra - sinistra + 1) * CELLA_SETTORI}" height="${(sotto - sopra + 1) * CELLA_SETTORI}"/>`;
+  }).join('');
+}
+
+function disegnaRotte(dati, lato) {
+  return dati.navi.map((n) => {
+    const traccia = n.ultimo_movimento?.traccia;
+    if (!traccia || traccia.length < 2) return '';
+    const gruppi = [];
+    traccia.forEach((passo) => {
+      const ultimo = gruppi[gruppi.length - 1];
+      if (ultimo && ultimo[0].livello === passo.livello) ultimo.push(passo);
+      else gruppi.push([passo]);
+    });
+    const pezzi = gruppi.map((gruppo) => {
+      const punti = gruppo.map((p) => {
+        const { cx, cy } = centroCella(p.livello, p.x, p.y, lato);
+        return `${cx},${cy}`;
+      }).join(' ');
+      return `<polyline class="linea-rotta" points="${punti}" stroke="${esc(n.colore)}"/>`;
+    });
+    traccia.forEach((p) => {
+      const { cx, cy } = centroCella(p.livello, p.x, p.y, lato);
+      const raggio = p.cambio_livello ? 2.4 : 1.4;
+      pezzi.push(`<circle class="punto-rotta" cx="${cx}" cy="${cy}" r="${raggio}" fill="${esc(n.colore)}"/>`);
+    });
+    return pezzi.join('');
+  }).join('');
+}
+
+function segnalinoSvg(cx, cy, colore, pieno) {
+  const punti = `${cx},${cy - 6} ${cx + 5},${cy + 4.5} ${cx - 5},${cy + 4.5}`;
+  return pieno
+    ? `<polygon class="segnalino" points="${punti}" fill="${esc(colore)}"/>`
+    : `<polygon class="segnalino" points="${punti}" fill="none" stroke="${esc(colore)}" stroke-width="1.4"/>`;
+}
+
+function disegnaSegnalini(dati, lato) {
+  // Piu' navi sullo stesso parsec (tipico alla partenza dalla base) vanno sfalsate.
+  const affollamento = new Map();
+  return dati.navi.map((n) => {
+    const chiave = `${n.posizione.livello}:${n.posizione.x}:${n.posizione.y}`;
+    const ordine = affollamento.get(chiave) || 0;
+    affollamento.set(chiave, ordine + 1);
+    const sfalsa = ordine * 7;
+
+    const pezzi = [];
+    const partenza = n.partenza_movimento;
+    if (partenza && (partenza.x !== n.posizione.x || partenza.y !== n.posizione.y || partenza.livello !== n.posizione.livello)) {
+      const a = centroCella(partenza.livello, partenza.x, partenza.y, lato);
+      pezzi.push(segnalinoSvg(a.cx, a.cy - 2, n.colore, false));
+    }
+    const b = centroCella(n.posizione.livello, n.posizione.x, n.posizione.y, lato);
+    pezzi.push(segnalinoSvg(b.cx + sfalsa, b.cy - 2, n.colore, true));
+    pezzi.push(`<text class="nome-segnalino" x="${b.cx + sfalsa + 7}" y="${b.cy - 4}" fill="${esc(n.colore)}">${esc(n.nome.replace('LEGIONARIO ', 'L.'))}</text>`);
+    return pezzi.join('');
+  }).join('');
+}
+
+/* ───────────────────────────── disegno: stereoscopio ───────────────────────────── */
+
+function profonditaPiano(lato) { return 2 * (lato - 1) * ISO_Y * CELLA_STEREO; }
+
+function distanzaFraPiani(lato) {
+  // I 4 parsec di regolamento, piu' quel tanto che basta perche' i piani non si confondano.
+  return 4 * CELLA_STEREO + profonditaPiano(lato) * 0.35;
+}
+
+function proiettaStereo(livello, x, y, lato) {
+  return {
+    px: (x - y) * ISO_X * CELLA_STEREO,
+    py: (x + y) * ISO_Y * CELLA_STEREO + livello * distanzaFraPiani(lato),
+  };
+}
+
+function sistemaStereo(p, lato) {
+  const { px, py } = proiettaStereo(p.livello, p.x, p.y, lato);
+  const alzata = 9;
+  const pezzi = [`<g class="sistema" data-pianeta="${esc(p.id)}">`];
+  pezzi.push(`<circle class="alone" cx="${px}" cy="${py - alzata}" r="11" fill="rgba(255,194,71,.18)"/>`);
+  pezzi.push(`<ellipse cx="${px}" cy="${py}" rx="3.6" ry="1.6" fill="rgba(0,0,0,.6)"/>`);
+  pezzi.push(`<line class="colonna-stereo" x1="${px}" y1="${py}" x2="${px}" y2="${py - alzata}"/>`);
+  if (p.base) {
+    pezzi.push(`<circle class="anello-base" cx="${px}" cy="${py - alzata}" r="8"/>`);
+    pezzi.push(`<circle class="disco-base" cx="${px}" cy="${py - alzata}" r="5"/>`);
+    pezzi.push(`<text class="lettera-base" x="${px}" y="${py - alzata + 2.6}" text-anchor="middle">B</text>`);
+  } else if (p.noto) {
+    pezzi.push(`<circle class="disco-noto" cx="${px}" cy="${py - alzata}" r="4.4"/>`);
+  } else {
+    pezzi.push(`<circle class="disco-ignoto" cx="${px}" cy="${py - alzata}" r="4"/>`);
+  }
+  if (p.barrato) {
+    pezzi.push(`<line class="croce-barrato" x1="${px - 5.5}" y1="${py - alzata - 5.5}" x2="${px + 5.5}" y2="${py - alzata + 5.5}"/>`);
+    pezzi.push(`<line class="croce-barrato" x1="${px + 5.5}" y1="${py - alzata - 5.5}" x2="${px - 5.5}" y2="${py - alzata + 5.5}"/>`);
+  }
+  if (stato.selezione === p.id) pezzi.push(`<circle class="selezionato" cx="${px}" cy="${py - alzata}" r="12"/>`);
+  pezzi.push(`<text class="sigla-sistema" x="${px}" y="${py + 11}" text-anchor="middle">${esc(p.sigla)}</text>`);
+  pezzi.push(`<title>${esc(p.id)}</title></g>`);
+  return pezzi.join('');
+}
+
+function disegnaStereoscopio(dati) {
+  const g = dati.galassia;
+  const lato = g.lato;
+  const pezzi = [];
+
+  // Si disegna un livello per volta, dal piu' alto al piu' basso: cosi' ogni piano
+  // copre quello che gli sta dietro e la pila si legge davvero come tridimensionale.
+  for (let livello = 0; livello < 4; livello += 1) {
+    const angoli = [[0, 0], [lato - 1, 0], [lato - 1, lato - 1], [0, lato - 1]]
+      .map(([x, y]) => proiettaStereo(livello, x, y, lato));
+    pezzi.push(`<polygon class="piano-stereo" points="${angoli.map((a) => `${a.px},${a.py}`).join(' ')}"/>`);
+
+    for (let k = 0; k < lato; k += 3) {
+      const a = proiettaStereo(livello, k, 0, lato); const b = proiettaStereo(livello, k, lato - 1, lato);
+      const c = proiettaStereo(livello, 0, k, lato); const d = proiettaStereo(livello, lato - 1, k, lato);
+      pezzi.push(`<line class="reticolo" x1="${a.px}" y1="${a.py}" x2="${b.px}" y2="${b.py}"/>`);
+      pezzi.push(`<line class="reticolo" x1="${c.px}" y1="${c.py}" x2="${d.px}" y2="${d.py}"/>`);
+    }
+
+    const sinistra = proiettaStereo(livello, 0, lato - 1, lato);
+    const nome = String(g.nomi_livello[livello]).split('—')[0].trim();
+    pezzi.push(`<text class="etichetta-settore" x="${sinistra.px - 16}" y="${sinistra.py + 4}" text-anchor="end">LIVELLO ${esc(nome)}</text>`);
+
+    // tratti di rotta percorsi su questo livello
+    dati.navi.forEach((n) => {
+      const traccia = n.ultimo_movimento?.traccia;
+      if (!traccia || traccia.length < 2) return;
+      const punti = traccia.filter((p) => p.livello === livello)
+        .map((p) => { const q = proiettaStereo(p.livello, p.x, p.y, lato); return `${q.px},${q.py - 9}`; });
+      if (punti.length > 1) {
+        pezzi.push(`<polyline class="linea-rotta" points="${punti.join(' ')}" stroke="${esc(n.colore)}"/>`);
+      }
+    });
+
+    g.pianeti.filter((p) => p.livello === livello).forEach((p) => pezzi.push(sistemaStereo(p, lato)));
+
+    dati.navi.filter((n) => n.posizione.livello === livello).forEach((n, indice) => {
+      const q = proiettaStereo(livello, n.posizione.x, n.posizione.y, lato);
+      pezzi.push(segnalinoSvg(q.px + indice * 8, q.py - 15, n.colore, true));
+    });
+  }
+
+  // I cambi di livello si vedono come segmenti verticali fra un piano e l'altro.
+  dati.navi.forEach((n) => {
+    const traccia = n.ultimo_movimento?.traccia || [];
+    for (let k = 1; k < traccia.length; k += 1) {
+      if (!traccia[k].cambio_livello) continue;
+      const a = proiettaStereo(traccia[k - 1].livello, traccia[k - 1].x, traccia[k - 1].y, lato);
+      const b = proiettaStereo(traccia[k].livello, traccia[k].x, traccia[k].y, lato);
+      pezzi.push(`<line class="salto-livello" x1="${a.px}" y1="${a.py - 9}" x2="${b.px}" y2="${b.py - 9}" stroke="${esc(n.colore)}"/>`);
+    }
+  });
+
+  const meta = (lato - 1) * ISO_X * CELLA_STEREO;
+  const alto = 3 * distanzaFraPiani(lato) + profonditaPiano(lato);
+  return `<svg viewBox="${-meta - 160} -30 ${2 * meta + 200} ${alto + 60}" role="img" aria-label="Stereoscopio tridimensionale">${pezzi.join('')}</svg>`;
+}
+
+/* ───────────────────────────── pannelli ───────────────────────────── */
+
+function aggiornaTesta(dati) {
+  $('#lettura-matricola').textContent = dati.galassia.seme;
+  $('#lettura-turno').textContent = dati.turno;
+  $('#lettura-tiri').textContent = dati.tiri;
+}
+
+function aggiornaNavi(dati) {
+  const contenitore = $('#elenco-navi');
+  const attiva = $('#campo-nave').value;
+  contenitore.innerHTML = dati.navi.map((n) => `
+    <div class="scheda-nave ${n.nome === attiva ? 'attiva' : ''}" data-nave="${esc(n.nome)}">
+      <div class="bandiera-nave" style="background:${esc(n.colore)};color:${esc(n.colore)}"></div>
+      <div>
+        <div class="nome-nave">${esc(n.nome)}</div>
+        <div class="dati-nave">
+          S.N. in <b>${esc(n.posizione.riferimento)}</b>${n.a_terra ? ' · <b>al suolo</b>' : ''}<br>
+          ${n.serbatoi} serbatoi · ${n.radar} radar · ${n.computer} computer<br>
+          informazioni residue: <b>${n.informazioni_residue}</b>
+        </div>
+      </div>
+      <div class="punti-nave">${n.punti}<small>punti</small></div>
+    </div>`).join('');
+
+  const selettore = $('#campo-nave');
+  const precedente = selettore.value;
+  selettore.innerHTML = dati.navi.map((n) => `<option value="${esc(n.nome)}">${esc(n.nome)}</option>`).join('');
+  if (dati.navi.some((n) => n.nome === precedente)) selettore.value = precedente;
+  $('#nota-ordine').textContent = `Ordine di gioco estratto a sorte: ${dati.ordine_turno.join(' → ')}.`;
+}
+
+function aggiornaRegistro(dati) {
+  const lista = $('#registro');
+  if (!dati.registro.length) {
+    lista.innerHTML = '<li class="vuoto">Registro vuoto.</li>';
+    return;
+  }
+  lista.innerHTML = dati.registro.map((v) => `
+    <li class="tipo-${esc(v.tipo)}">
+      <span class="indice">${v.n}</span>
+      <span class="voce"><span class="attore">${esc(v.attore)}:</span> ${esc(v.testo)}</span>
+    </li>`).join('');
+  lista.scrollTop = lista.scrollHeight;
+}
+
+function aggiornaAutonomia() {
+  const serbatoi = Number($('#campo-serbatoi').value || 0);
+  const per = stato.dati?.parsec_per_serbatoio ?? 5;
+  $('#lettura-autonomia').textContent = `${serbatoi * per} parsec`;
+}
+
+function aggiornaDossier() {
+  const nodo = $('#dossier');
+  const pianeta = stato.dati?.galassia.pianeti.find((p) => p.id === stato.selezione);
+  if (!pianeta) {
+    nodo.innerHTML = '<p class="vuoto">Seleziona un sistema sulla Tabula per aprirne la scheda.</p>';
+    return;
+  }
+  const i = pianeta.informazioni || {};
+  const pezzi = [`
+    <div class="testata-dossier">
+      <h3>${esc(pianeta.base ? 'PIANETA BASE' : (i.tipo ? `${i.tipo} (${i.codice})` : 'SISTEMA IGNOTO'))}</h3>
+      <span class="riferimento">${esc(pianeta.id)}</span>
+    </div>`];
+
+  if (pianeta.barrato) {
+    pezzi.push('<p class="nota-pannello" style="color:var(--corallo)">Barrato sulla Tabula: ormai noto, non più visitabile da nessuno.</p>');
+  }
+
+  const righe = (pianeta.livelli_noti || []).map((livello) => `
+    <li><span class="grado">${esc(livello)}</span><span>${esc(fraseInfo(livello, i))}</span></li>`);
+  if (righe.length) pezzi.push(`<ul class="righe-info">${righe.join('')}</ul>`);
+  else if (!pianeta.base) pezzi.push('<p class="nota-pannello">Nessuna notizia negli archivi. Occorre una richiesta di informazione da parte di un U.C. entro il raggio dei radar.</p>');
+
+  if (pianeta.alieni_presenti != null) {
+    pezzi.push(`<p class="nota-pannello">TAB. PRESENZE: <strong style="color:var(--ambra)">${pianeta.alieni_presenti}</strong> Alieni rilevati.</p>`);
+  }
+
+  const voce = i.rif_gi ? stato.tabelle?.guida?.voci?.[String(i.rif_gi)] : null;
+  if (voce) pezzi.push(bloccoGi(voce, i.rif_gi));
+
+  const nave = $('#campo-nave').value;
+  const naveDati = stato.dati.navi.find((n) => n.nome === nave);
+  const stessoParsec = naveDati && naveDati.posizione.livello === pianeta.livello
+    && naveDati.posizione.x === pianeta.x && naveDati.posizione.y === pianeta.y;
+  pezzi.push(`
+    <div class="fila-azioni">
+      <button class="bottone bottone-piccolo" data-azione="informa">Richiedi informazione</button>
+      ${stessoParsec ? '<button class="bottone bottone-piccolo" data-azione="atterra">Atterra qui</button>' : ''}
+    </div>`);
+  nodo.innerHTML = pezzi.join('');
+}
+
+function bloccoGi(voce, riferimento) {
+  const scheda = voce.scheda || {};
+  const tabella = (nome, tab) => {
+    if (!tab) return '';
+    const celle = Object.entries(tab.esiti).map(([faccia, valore]) => `<tr><td>${esc(faccia)}</td><td>${esc(valore)}</td></tr>`).join('');
+    return `<table class="tabella-gi"><tr><th colspan="2">${esc(nome)} — ${esc(tab.dado)}</th></tr>${celle}</table>`;
+  };
+  const attivita = (scheda.attivita || []).map((a) => `
+    <table class="tabella-gi">
+      <tr><th colspan="2">${esc(a.nome)} — ${esc(a.dado)}, controllo ${esc(a.controllo)}</th></tr>
+      ${Object.entries(a.esiti).map(([faccia, riga]) => `<tr><td>${esc(faccia)}</td><td>${esc(riga.testo)} <em style="color:var(--ambra)">(${riga.punti > 0 ? '+' : ''}${riga.punti})</em></td></tr>`).join('')}
+    </table>`).join('');
+  return `
+    <div class="blocco-gi">
+      <span class="genere">G.I. n. ${esc(riferimento)} · ${esc(voce.genere)}</span>
+      <h4>${esc(voce.nome)}</h4>
+      <p>${esc(voce.descrizione)}</p>
+      <p style="color:var(--cromo-cupo)"><strong>Atteggiamento:</strong> ${esc(scheda.atteggiamento || '—')}</p>
+      ${tabella('TAB. PRESENZE', scheda.presenze)}
+      ${tabella('TAB. ARRIVI', scheda.arrivi)}
+      ${attivita}
+      <p style="color:var(--cromo-cupo)"><strong>Combattimento:</strong> forza ${esc(scheda.combattimento?.forza)} · resistenza ${esc(scheda.combattimento?.resistenza)} — ${esc(scheda.combattimento?.nota || '')}</p>
+    </div>`;
+}
+
+function disegna() {
+  if (!stato.dati) return;
+  aggiornaTesta(stato.dati);
+  $('#tela').innerHTML = stato.vistaMappa === 'stereoscopio'
+    ? disegnaStereoscopio(stato.dati)
+    : disegnaSettori(stato.dati);
+  aggiornaNavi(stato.dati);
+  aggiornaRegistro(stato.dati);
+  aggiornaDossier();
+  aggiornaAutonomia();
+}
+
+/* ───────────────────────────── comandi ───────────────────────────── */
+
+async function caricaStato() {
+  const vista = $('#campo-vista-uc').checked ? 'uc' : 'sc';
+  stato.dati = await chiama(`/api/stato?vista=${vista}`);
+  disegna();
+}
+
+async function generaZona() {
+  const ufficiali = $('#campo-ufficiali').value.split(',').map((s) => s.trim()).filter(Boolean);
+  try {
+    await chiama('/api/nuova', {
+      seme: $('#campo-seme').value,
+      lato: Number($('#campo-lato').value),
+      distribuzione: $('#campo-distribuzione').value,
+      ufficiali,
+      spazio_esterno: $('#campo-esterno').checked,
+    });
+    stato.selezione = null;
+    await caricaStato();
+    avvisa(`Zona creata. Matricola ${stato.dati.galassia.seme}. Gli U.C. non ne sono al corrente.`, 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function eseguiRotta() {
+  try {
+    const risposta = await chiama('/api/rotta', {
+      nave: $('#campo-nave').value,
+      rotta: $('#campo-rotta').value,
+      serbatoi: Number($('#campo-serbatoi').value),
+      radar: Number($('#campo-radar').value),
+      computer: Number($('#campo-computer').value),
+      atterraggio: $('#campo-atterraggio').checked,
+    });
+    await caricaStato();
+    const comunicazioni = risposta.esito.movimento.comunicazioni || [];
+    avvisa(comunicazioni.join('  ·  ') || 'Rotta eseguita.', 'esito');
+    $('#campo-atterraggio').checked = false;
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function richiediInformazione() {
+  try {
+    const risposta = await chiama('/api/informazione', {
+      nave: $('#campo-nave').value,
+      pianeta: stato.selezione,
+    });
+    await caricaStato();
+    const e = risposta.esito;
+    const dado = e.dado ? `${e.dado} → ${e.esito} · ` : '';
+    avvisa(`${e.livello} livello · ${dado}${e.testo}`, e.dns ? 'errore' : 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function atterra() {
+  try {
+    const risposta = await chiama('/api/atterraggio', { nave: $('#campo-nave').value, pianeta: stato.selezione });
+    await caricaStato();
+    const e = risposta.esito;
+    avvisa(`Atterraggio su ${e.sigla}. Punti attribuiti: ${e.punti ?? 0}.`, 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function chiudiTurno() {
+  try {
+    await chiama('/api/turno', {});
+    await caricaStato();
+    avvisa(`Turno ${stato.dati.turno}. Informazioni di bordo ripristinate.`, 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function esporta() {
+  try {
+    const dati = await chiama('/api/esporta');
+    const url = URL.createObjectURL(new Blob([JSON.stringify(dati, null, 2)], { type: 'application/json' }));
+    const collegamento = document.createElement('a');
+    collegamento.href = url;
+    collegamento.download = `vii-legio-${dati.stato.galassia.seme}.json`;
+    collegamento.click();
+    URL.revokeObjectURL(url);
+  } catch (errore) { avvisa(errore.message); }
+}
+
+/* ───────────────────────────── avvio ───────────────────────────── */
+
+function collega() {
+  $('#bottone-genera').addEventListener('click', generaZona);
+  $('#bottone-rotta').addEventListener('click', eseguiRotta);
+  $('#bottone-turno').addEventListener('click', chiudiTurno);
+  $('#bottone-esporta').addEventListener('click', esporta);
+  $('#bottone-stampa').addEventListener('click', () => window.print());
+  $('#campo-serbatoi').addEventListener('input', aggiornaAutonomia);
+  $('#campo-vista-uc').addEventListener('change', caricaStato);
+  $('#campo-nave').addEventListener('change', () => { aggiornaNavi(stato.dati); aggiornaDossier(); });
+  $('#campo-rotta').addEventListener('keydown', (evento) => { if (evento.key === 'Enter') eseguiRotta(); });
+
+  const scegliVista = (nome) => {
+    document.querySelectorAll('[data-vista-mappa]').forEach((b) => {
+      b.classList.toggle('attiva', b.dataset.vistaMappa === nome);
+    });
+    stato.vistaMappa = nome;
+    location.hash = nome;
+    disegna();
+  };
+  document.querySelectorAll('[data-vista-mappa]').forEach((bottone) => {
+    bottone.addEventListener('click', () => scegliVista(bottone.dataset.vistaMappa));
+  });
+  if (location.hash.slice(1) === 'stereoscopio') scegliVista('stereoscopio');
+
+  $('#tela').addEventListener('click', (evento) => {
+    const sistema = evento.target.closest('[data-pianeta]');
+    if (!sistema) return;
+    stato.selezione = sistema.dataset.pianeta;
+    disegna();
+  });
+
+  $('#elenco-navi').addEventListener('click', (evento) => {
+    const scheda = evento.target.closest('[data-nave]');
+    if (!scheda) return;
+    $('#campo-nave').value = scheda.dataset.nave;
+    aggiornaNavi(stato.dati);
+    aggiornaDossier();
+  });
+
+  $('#dossier').addEventListener('click', (evento) => {
+    const azione = evento.target.closest('[data-azione]')?.dataset.azione;
+    if (azione === 'informa') richiediInformazione();
+    if (azione === 'atterra') atterra();
+  });
+}
+
+(async function avvia() {
+  collega();
+  try {
+    stato.tabelle = await chiama('/api/tabelle');
+    await caricaStato();
+  } catch (errore) {
+    avvisa(`Terminale non raggiungibile: ${errore.message}`);
+  }
+}());

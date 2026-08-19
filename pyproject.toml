@@ -1,0 +1,17 @@
+[project]
+name = "legio"
+version = "0.1.0"
+description = "VII LEGIO — sistema di supporto per lo Spazio Computer: generazione della galassia tridimensionale, rotte, avvistamenti, informazioni e atterraggi"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+legio = "legio:main"
+
+[tool.uv.build-backend]
+source-include = ["src/legio/dati/*.json", "src/legio/web/*"]
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"

@@ -1,0 +1,194 @@
+{
+  "titolo": "MODULO SCHEDE INFORMAZIONI — C.S.C.",
+  "classifica": "S.C. Classe B · Livello Basico Segreto",
+  "nota": "Ogni informazione tiene presente quelle precedenti. Si lancia il dado indicato per il livello richiesto e si legge la caratteristica corrispondente all'esito. Un esito D.N.S. costringe a ripetere la richiesta, sprecando quella precedente.",
+  "avvertenza_ricostruzione": "Tabelle ricostruite sui meccanismi della sez. F del regolamento. Sostituibili con quelle originali mantenendo questo formato.",
+  "ordine": ["I", "I-bis", "II", "III", "IV"],
+  "livelli": {
+    "I": {
+      "nome": "Tipo di pianeta",
+      "chiave": "tipo",
+      "tabelle": [
+        {
+          "quando": {},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"tipo": "TERRA", "codice": "A", "classe": "terrestre", "ambiente": "Atmosfera respirabile, idrosfera estesa, gravita' prossima allo standard solare."}},
+            {"faccia": "3", "dati": {"tipo": "MARS", "codice": "M", "classe": "arido", "ambiente": "Deserti ferrosi, atmosfera rarefatta, tempeste di polvere permanenti."}},
+            {"faccia": "4", "dati": {"tipo": "VENUS", "codice": "V", "classe": "serra", "ambiente": "Coltre nuvolosa corrosiva, pressione al suolo insostenibile senza tuta pesante."}},
+            {"faccia": "5", "dati": {"tipo": "NEPTUNUS", "codice": "N", "classe": "oceanico", "ambiente": "Oceano globale sotto crosta di ghiaccio, nessuna terra emersa."}},
+            {"faccia": "6-7", "dati": {"tipo": "JUPPITER", "codice": "G", "classe": "gigante gassoso", "ambiente": "Nessuna superficie solida: si opera sulle piattaforme di condensa alle quote medie."}},
+            {"faccia": "8", "dati": {"tipo": "MERCURIUS", "codice": "K", "classe": "roccioso bruciato", "ambiente": "Emisfero fuso, emisfero gelato, nessuna atmosfera."}},
+            {"faccia": "9", "dati": {"tipo": "PLUTO", "codice": "P", "classe": "glaciale morto", "ambiente": "Crosta di metano solido, buio quasi assoluto, tettonica spenta."}},
+            {"faccia": "10", "dns": true}
+          ]
+        }
+      ]
+    },
+    "I-bis": {
+      "nome": "Sotto-informazione: tipo di radioattivita'",
+      "chiave": "radioattivita",
+      "solo_spazio_esterno": true,
+      "tabelle": [
+        {
+          "quando": {},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-3", "dati": {"radioattivita": "NULLA", "nota_radio": "Fondo entro i limiti di tolleranza dell'equipaggio."}},
+            {"faccia": "4-5", "dati": {"radioattivita": "DEBOLE", "nota_radio": "Permanenza al suolo consentita per un turno soltanto."}},
+            {"faccia": "6", "dati": {"radioattivita": "LETALE", "nota_radio": "Sbarco vietato dal regolamento U.C. senza schermatura pesante."}}
+          ]
+        }
+      ]
+    },
+    "II": {
+      "nome": "Forme di vita",
+      "chiave": "vita",
+      "tabelle": [
+        {
+          "quando": {"codice": ["A"]},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-3", "dati": {"vita": "ANIMALI"}},
+            {"faccia": "4-6", "dati": {"vita": "VEGETALI"}},
+            {"faccia": "7-8", "dati": {"vita": "MINERALI"}},
+            {"faccia": "9", "dati": {"vita": "NESSUNA"}},
+            {"faccia": "10", "dns": true}
+          ]
+        },
+        {
+          "quando": {"codice": ["G"]},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"vita": "ANIMALI"}},
+            {"faccia": "3-5", "dati": {"vita": "VEGETALI"}},
+            {"faccia": "6-8", "dati": {"vita": "MINERALI"}},
+            {"faccia": "9", "dati": {"vita": "NESSUNA"}},
+            {"faccia": "10", "dns": true}
+          ]
+        },
+        {
+          "quando": {"codice": ["V", "N"]},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"vita": "ANIMALI"}},
+            {"faccia": "3-4", "dati": {"vita": "VEGETALI"}},
+            {"faccia": "5-7", "dati": {"vita": "MINERALI"}},
+            {"faccia": "8-9", "dati": {"vita": "NESSUNA"}},
+            {"faccia": "10", "dns": true}
+          ]
+        },
+        {
+          "quando": {"codice": ["M", "K", "P"]},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1", "dati": {"vita": "ANIMALI"}},
+            {"faccia": "2-3", "dati": {"vita": "VEGETALI"}},
+            {"faccia": "4-7", "dati": {"vita": "MINERALI"}},
+            {"faccia": "8-9", "dati": {"vita": "NESSUNA"}},
+            {"faccia": "10", "dns": true}
+          ]
+        }
+      ]
+    },
+    "III": {
+      "nome": "Grado di sapienza",
+      "chiave": "sapienza",
+      "tabelle": [
+        {
+          "quando": {"vita": ["NESSUNA"]},
+          "senza_dado": true,
+          "dati": {"sapienza": "—", "terminale": true, "esito_finale": "PIANETA DESERTO — nessun incontro previsto, nessun punto assegnabile."}
+        },
+        {
+          "quando": {"vita": ["MINERALI"]},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-3", "dati": {"sapienza": "SAPIENS"}},
+            {"faccia": "4-7", "dati": {"sapienza": "NON SAPIENS"}},
+            {"faccia": "8-9", "dati": {"sapienza": "MINERALI DI OZ"}},
+            {"faccia": "10", "dns": true}
+          ]
+        },
+        {
+          "quando": {},
+          "dado": "d10",
+          "esiti": [
+            {"faccia": "1-4", "dati": {"sapienza": "SAPIENS"}},
+            {"faccia": "5-9", "dati": {"sapienza": "NON SAPIENS"}},
+            {"faccia": "10", "dns": true}
+          ]
+        }
+      ]
+    },
+    "IV": {
+      "nome": "Razza aliena e riferimento G.I.",
+      "chiave": "razza",
+      "tabelle": [
+        {
+          "quando": {"vita": ["ANIMALI"], "sapienza": ["SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "SELENITI DI PROXIMA", "rif_gi": 1}},
+            {"faccia": "3-4", "dati": {"razza": "UOMINI-VESPA DI ALDEBARAN", "rif_gi": 2}},
+            {"faccia": "5-6", "dati": {"razza": "SAURI DI RIGEL", "rif_gi": 3}}
+          ]
+        },
+        {
+          "quando": {"vita": ["ANIMALI"], "sapienza": ["NON SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "BESTIE DI CANOPO", "rif_gi": 4}},
+            {"faccia": "3-4", "dati": {"razza": "SCIAMI DI VEGA", "rif_gi": 5}},
+            {"faccia": "5-6", "dati": {"razza": "LEVIATANI DI MIRA", "rif_gi": 6}}
+          ]
+        },
+        {
+          "quando": {"vita": ["VEGETALI"], "sapienza": ["SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "DENDRITI DI ARCTURUS", "rif_gi": 7}},
+            {"faccia": "3-4", "dati": {"razza": "FUNGHI-ORACOLO DI TAU CETI", "rif_gi": 8}},
+            {"faccia": "5-6", "dati": {"razza": "LIANE PENSANTI DI SIRIO", "rif_gi": 9}}
+          ]
+        },
+        {
+          "quando": {"vita": ["VEGETALI"], "sapienza": ["NON SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-3", "dati": {"razza": "VELENOSI", "rif_gi": 10}},
+            {"faccia": "4-6", "dati": {"razza": "MOSTRI", "rif_gi": 11}}
+          ]
+        },
+        {
+          "quando": {"vita": ["MINERALI"], "sapienza": ["SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "CRISTALLINI DI PROCIONE", "rif_gi": 12}},
+            {"faccia": "3-4", "dati": {"razza": "GEOMETRI DI DENEB", "rif_gi": 13}},
+            {"faccia": "5-6", "dati": {"razza": "SILICEI DI ANTARES", "rif_gi": 14}}
+          ]
+        },
+        {
+          "quando": {"vita": ["MINERALI"], "sapienza": ["NON SAPIENS"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "CONCREZIONI MAGNETICHE", "rif_gi": 15}},
+            {"faccia": "3-4", "dati": {"razza": "PIETRE-SPORA DI ALTAIR", "rif_gi": 16}},
+            {"faccia": "5-6", "dati": {"razza": "COLOSSI DI BASALTO", "rif_gi": 17}}
+          ]
+        },
+        {
+          "quando": {"sapienza": ["MINERALI DI OZ"]},
+          "dado": "d6",
+          "esiti": [
+            {"faccia": "1-2", "dati": {"razza": "FILONE DI OZ PURO", "rif_gi": 18}},
+            {"faccia": "3-4", "dati": {"razza": "VENA DI OZ IMPURO", "rif_gi": 19}},
+            {"faccia": "5", "dati": {"razza": "GEODE DI OZ VIVENTE", "rif_gi": 20}},
+            {"faccia": "6", "dns": true}
+          ]
+        }
+      ]
+    }
+  }
+}

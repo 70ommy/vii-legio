@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VII LEGIO — Terminale Spazio Computer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="scafo">
+
+  <header class="intestazione">
+    <div class="stemma" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17"/>
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(60 50 50)"/>
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(-60 50 50)"/>
+        <circle class="nucleo" cx="50" cy="50" r="9"/>
+      </svg>
+    </div>
+    <div class="titoli">
+      <h1>VII&nbsp;LEGIO</h1>
+      <p class="sottotitolo">Corporazione Spazio Computer · Terminale di cella · Settori interni incogniti</p>
+    </div>
+    <dl class="quadranti">
+      <div><dt>Matricola zona</dt><dd id="lettura-matricola">— — — —</dd></div>
+      <div><dt>Turno</dt><dd id="lettura-turno">1</dd></div>
+      <div><dt>Lanci registrati</dt><dd id="lettura-tiri">0</dd></div>
+    </dl>
+    <div class="timbro" title="Accesso S.C. Classe B">
+      <span>Classe B</span><strong>Basico Segreto</strong>
+    </div>
+  </header>
+
+  <main class="ponte">
+
+    <!-- ───────────────────────────── colonna comandi ───────────────────────────── -->
+    <aside class="colonna">
+
+      <section class="pannello">
+        <h2 class="titolo-pannello">C · Creazione della zona</h2>
+        <div class="griglia-campi">
+          <label class="campo campo-largo">
+            <span>Matricola (seme)</span>
+            <input id="campo-seme" type="text" placeholder="lasciare vuoto = a sorte" autocomplete="off">
+          </label>
+          <label class="campo">
+            <span>Parsec per lato</span>
+            <input id="campo-lato" type="number" min="6" max="21" value="12">
+          </label>
+          <label class="campo">
+            <span>Disposizione</span>
+            <select id="campo-distribuzione">
+              <option value="bilanciata">Bilanciata</option>
+              <option value="libera">Libera (da regolamento)</option>
+              <option value="ammassata">Ammassata in nebulose</option>
+            </select>
+          </label>
+          <label class="campo campo-largo">
+            <span>Ufficiali Comandanti (separati da virgola)</span>
+            <input id="campo-ufficiali" type="text" value="LEGIONARIO I, LEGIONARIO II" autocomplete="off">
+          </label>
+        </div>
+        <label class="interruttore">
+          <input id="campo-esterno" type="checkbox">
+          <span class="leva"></span>
+          <span class="etichetta-leva">Spazio esterno <small>(attiva la sotto-informazione di radioattività)</small></span>
+        </label>
+        <button id="bottone-genera" class="bottone bottone-primario">
+          <span class="pittogramma">◈</span> Genera la zona di galassia
+        </button>
+        <p class="nota-pannello">
+          4 settori tridimensionali · 9 sistemi per livello · 36 in tutto · 4 parsec fra un livello e l'altro.
+          Il <em>contenuto</em> dei sistemi non viene deciso adesso: si tira ai dadi all'incontro.
+        </p>
+      </section>
+
+      <section class="pannello">
+        <h2 class="titolo-pannello">D · Dichiarazione di rotta</h2>
+        <div class="griglia-campi">
+          <label class="campo campo-largo">
+            <span>Ufficiale Comandante</span>
+            <select id="campo-nave"></select>
+          </label>
+          <label class="campo campo-largo">
+            <span>Rotta in parsec e direzione</span>
+            <input id="campo-rotta" type="text" placeholder="10 N, +5 E" autocomplete="off">
+          </label>
+          <label class="campo">
+            <span>Serbatoi</span>
+            <input id="campo-serbatoi" type="number" min="1" max="12" value="3">
+          </label>
+          <label class="campo">
+            <span>Radar <small>max 3</small></span>
+            <input id="campo-radar" type="number" min="0" max="3" value="3">
+          </label>
+          <label class="campo">
+            <span>Computer</span>
+            <input id="campo-computer" type="number" min="0" max="6" value="2">
+          </label>
+          <div class="campo lettura-autonomia">
+            <span>Autonomia</span>
+            <output id="lettura-autonomia">15 parsec</output>
+          </div>
+        </div>
+        <label class="interruttore">
+          <input id="campo-atterraggio" type="checkbox">
+          <span class="leva"></span>
+          <span class="etichetta-leva">Dichiara <strong>ATTERRAGGIO</strong> <small>(obbligatorio per scendere)</small></span>
+        </label>
+        <div class="fila-bottoni">
+          <button id="bottone-rotta" class="bottone bottone-primario"><span class="pittogramma">➤</span> Traccia ed esegui</button>
+          <button id="bottone-turno" class="bottone">Chiudi turno</button>
+        </div>
+        <p class="nota-pannello">
+          Direzioni: <code>N NE E SE S SO O NO</code> · cambio di livello: <code>SU</code> / <code>GIU</code>
+          (4 parsec a salto). La rotta non deve essere in linea retta: <code>6 NE, 4 GIU, 3 O</code>.
+        </p>
+      </section>
+
+      <section class="pannello">
+        <h2 class="titolo-pannello">Segnalini Nave in azione</h2>
+        <div id="elenco-navi" class="elenco-navi"></div>
+        <p class="nota-pannello" id="nota-ordine"></p>
+      </section>
+
+    </aside>
+
+    <!-- ───────────────────────────── tabula spatii ───────────────────────────── -->
+    <section class="tabula">
+      <div class="barra-vista">
+        <h2 class="titolo-pannello">Tabula Spatii</h2>
+        <div class="selettore" role="tablist" aria-label="Proiezione">
+          <button class="scheda attiva" data-vista-mappa="settori">Quattro settori</button>
+          <button class="scheda" data-vista-mappa="stereoscopio">Stereoscopio 3D</button>
+        </div>
+        <label class="interruttore compatto">
+          <input id="campo-vista-uc" type="checkbox">
+          <span class="leva"></span>
+          <span class="etichetta-leva">Plancia U.C. <small>(occulta i sistemi non noti)</small></span>
+        </label>
+      </div>
+      <div id="tela" class="tela"></div>
+      <div class="legenda">
+        <span><i class="segno segno-base"></i> pianeta base B</span>
+        <span><i class="segno segno-ignoto"></i> sistema non avvistato</span>
+        <span><i class="segno segno-noto"></i> sistema con notizie</span>
+        <span><i class="segno segno-barrato"></i> barrato: non più visitabile</span>
+        <span><i class="segno segno-rotta"></i> rotta tracciata a matita</span>
+        <span><i class="segno segno-radar"></i> gittata radar</span>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────── colonna informazioni ───────────────────────────── -->
+    <aside class="colonna">
+
+      <section class="pannello pannello-dossier">
+        <h2 class="titolo-pannello">F · Scheda Informazioni</h2>
+        <div id="dossier" class="dossier">
+          <p class="vuoto">Seleziona un sistema sulla Tabula per aprirne la scheda.</p>
+        </div>
+      </section>
+
+      <section class="pannello pannello-registro">
+        <h2 class="titolo-pannello">Registro di cella</h2>
+        <div class="fila-bottoni fila-bottoni-fine">
+          <button id="bottone-esporta" class="bottone bottone-piccolo">Esporta JSON</button>
+          <button id="bottone-stampa" class="bottone bottone-piccolo">Stampa</button>
+        </div>
+        <ol id="registro" class="registro"></ol>
+      </section>
+
+    </aside>
+  </main>
+
+  <div id="avviso" class="avviso" role="status" aria-live="polite"></div>
+  <div class="velo-crt" aria-hidden="true"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

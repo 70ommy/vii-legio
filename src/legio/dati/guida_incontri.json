@@ -1,0 +1,508 @@
+{
+  "titolo": "GUIDA INCONTRI (G.I.) — C.S.C.",
+  "classifica": "S.C. Classe B · Livello Basico Segreto",
+  "nota": "Le notizie riportate vanno lette integralmente all'U.C. interessato, sia per la descrizione sia per la scheda tecnica, salvo le possibilita' di nuovi arrivi. Sono di pubblico dominio.",
+  "avvertenza_ricostruzione": "Voci ricostruite sui meccanismi della sez. G del regolamento. Sostituibili con quelle originali mantenendo questo formato.",
+  "voci": {
+    "1": {
+      "nome": "SELENITI DI PROXIMA",
+      "genere": "ANIMALE SAPIENS",
+      "descrizione": "Bipedi esili, alti due metri e mezzo, pelle lunare e occhi senza palpebra. Vivono in citta' a cupola sepolte nella regolite e considerano il rumore una forma di aggressione. Trattano volentieri chi si presenta in silenzio.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 2, "3-4": 4, "5": 6, "6": 9}},
+        "arrivi": {"dado": "d6", "esiti": {"1-3": 0, "4-5": 1, "6": 3}},
+        "atteggiamento": "Diffidente ma pacifico. Attaccano solo se provocati dal rumore dei motori.",
+        "attivita": [
+          {
+            "nome": "COMMERCIO DI CRISTALLI DI SELENE",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "L'U.C. sbaglia il protocollo del silenzio: trattativa chiusa, nessuno scambio.", "punti": 0},
+              "2-4": {"testo": "Scambio regolare: 3 casse di cristalli imbarcate.", "punti": 4},
+              "5-6": {"testo": "I Seleniti aprono i magazzini profondi: carico eccezionale.", "punti": 8}
+            }
+          },
+          {
+            "nome": "RICERCA SCIENTIFICA CONGIUNTA",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "Gli archivi selenitici risultano inaccessibili agli strumenti di bordo.", "punti": 0},
+              "3-8": {"testo": "Condivisione delle mappe gravimetriche del settore.", "punti": 5},
+              "9-10": {"testo": "Rivelano la posizione di un sistema vicino: lo S.C. indica un pianeta non ancora avvistato entro 6 parsec.", "punti": 7}
+            }
+          }
+        ],
+        "combattimento": {"forza": 2, "resistenza": 3, "nota": "Armi soniche a corto raggio."},
+        "punti_base": 3
+      }
+    },
+    "2": {
+      "nome": "UOMINI-VESPA DI ALDEBARAN",
+      "genere": "ANIMALE SAPIENS",
+      "descrizione": "Insettoidi ronzanti organizzati in caste rigide, con esoscheletro laccato di giallo e nero. Ogni individuo parla al plurale, perche' non concepisce di esistere da solo. Il loro senso dell'onore prevede un duello rituale a ogni primo contatto.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1": 4, "2-3": 8, "4-5": 12, "6": 20}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 2, "3-4": 4, "5-6": 6}},
+        "atteggiamento": "Formale. Esigono il duello rituale, poi diventano alleati leali.",
+        "attivita": [
+          {
+            "nome": "DUELLO RITUALE DI PRIMO CONTATTO",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "L'U.C. rifiuta o perde male: lo sciame dichiara l'equipaggio 'non esistente' e lo ignora per sempre.", "punti": -2},
+              "2-3": {"testo": "Duello pari: rispetto tiepido, sbarco tollerato.", "punti": 2},
+              "4-6": {"testo": "L'U.C. vince: viene ascritto alla casta dei visitatori onorati.", "punti": 6}
+            }
+          },
+          {
+            "nome": "PATTO COMMERCIALE (solo dopo duello vinto o pari)",
+            "controllo": "S.C.",
+            "dado": "d6",
+            "esiti": {
+              "1-2": {"testo": "Lo sciame offre miele metallico in quantita' modesta.", "punti": 3},
+              "3-6": {"testo": "Lo sciame concede una rotta di rifornimento: +1 serbatoio per il prossimo movimento.", "punti": 5}
+            }
+          }
+        ],
+        "combattimento": {"forza": 4, "resistenza": 2, "nota": "Pungiglione paralizzante; combattono sempre in gruppi di tre."},
+        "punti_base": 4
+      }
+    },
+    "3": {
+      "nome": "SAURI DI RIGEL",
+      "genere": "ANIMALE SAPIENS",
+      "descrizione": "Rettiliani di quattro metri, corazzati, di antichissima civilta' decaduta. Conservano macchinari che non sanno piu' riparare e venerano chiunque riesca a farli funzionare. Sospettano che i Solari siano i loro creatori.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 1, "3-4": 3, "5": 5, "6": 8}},
+        "arrivi": {"dado": "d6", "esiti": {"1-4": 0, "5-6": 2}},
+        "atteggiamento": "Reverenziale se l'U.C. mostra tecnologia; ostile se mostra debolezza.",
+        "attivita": [
+          {
+            "nome": "VENERAZIONE",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "I Sauri smascherano l'inganno: attacco immediato con l'intero gruppo.", "punti": -3},
+              "3-7": {"testo": "L'U.C. e' riconosciuto come emissario: doni e ospitalita'.", "punti": 6},
+              "8-10": {"testo": "L'U.C. viene proclamato Custode: i Sauri consegnano un archivio pre-decadenza.", "punti": 10}
+            }
+          }
+        ],
+        "combattimento": {"forza": 5, "resistenza": 5, "nota": "Corazza naturale: le armi leggere non graffiano."},
+        "punti_base": 5
+      }
+    },
+    "4": {
+      "nome": "BESTIE DI CANOPO",
+      "genere": "ANIMALE NON SAPIENS",
+      "descrizione": "Quadrupedi grigi grossi come una scialuppa, dal muso cieco e dall'olfatto prodigioso. Vagano in branchi seguendo il calore dei reattori. Non odiano nessuno: mangiano.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 2, "3-4": 5, "5-6": 9}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 1, "3-4": 2, "5-6": 4}},
+        "atteggiamento": "Predatorio. Attaccano il punto piu' caldo dell'accampamento.",
+        "attivita": [
+          {
+            "nome": "COMBATTIMENTO",
+            "controllo": "S.C.",
+            "dado": "d6",
+            "esiti": {
+              "1-2": {"testo": "Il branco travolge le difese: un membro dell'equipaggio ferito, sbarco interrotto.", "punti": -2},
+              "3-4": {"testo": "Le bestie vengono respinte con le armi di bordo.", "punti": 3},
+              "5-6": {"testo": "L'U.C. abbatte l'esemplare guida: campione biologico di gran valore.", "punti": 6}
+            }
+          }
+        ],
+        "combattimento": {"forza": 4, "resistenza": 3, "nota": "Carica cieca; perdono l'orientamento se il reattore viene spento."},
+        "punti_base": 2
+      }
+    },
+    "5": {
+      "nome": "SCIAMI DI VEGA",
+      "genere": "ANIMALE NON SAPIENS",
+      "descrizione": "Nubi di minuscoli organismi fosforescenti che si muovono come un solo animale. Divorano l'isolante dei cavi e nidificano nei circuiti. Bellissimi da guardare, catastrofici da ospitare.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-3": 1, "4-5": 2, "6": 3}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 0, "3-5": 1, "6": 2}},
+        "atteggiamento": "Indifferente all'equipaggio, voracissimo verso la nave.",
+        "attivita": [
+          {
+            "nome": "INFESTAZIONE DELLA NAVE",
+            "controllo": "U.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-3": {"testo": "Lo sciame entra nei circuiti: -1 radar per i prossimi due movimenti.", "punti": -3},
+              "4-8": {"testo": "Bonifica riuscita con le paratie sigillate in tempo.", "punti": 2},
+              "9-10": {"testo": "L'U.C. cattura uno sciame in bottiglia: esemplare unico per la Repubblica.", "punti": 7}
+            }
+          }
+        ],
+        "combattimento": {"forza": 1, "resistenza": 1, "nota": "Non si combatte: si sigilla."},
+        "punti_base": 2
+      }
+    },
+    "6": {
+      "nome": "LEVIATANI DI MIRA",
+      "genere": "ANIMALE NON SAPIENS",
+      "descrizione": "Colossi lunghi trecento metri che nuotano nell'atmosfera densa o negli oceani sotto-crosta. Filtrano gas e si accoppiano una volta per secolo. Una loro pinna puo' spezzare uno scafo per distrazione.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-4": 1, "5-6": 2}},
+        "arrivi": {"dado": "d6", "esiti": {"1-5": 0, "6": 1}},
+        "atteggiamento": "Ignaro. Il pericolo e' la sua semplice esistenza.",
+        "attivita": [
+          {
+            "nome": "RILEVAMENTO E FUGA",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1": {"testo": "Il Leviatano rotola sull'astronave: sbarco perduto, la nave riparte danneggiata.", "punti": -5},
+              "2-7": {"testo": "Osservazione a distanza di sicurezza: dati biologici straordinari.", "punti": 8},
+              "8-10": {"testo": "L'U.C. registra il canto riproduttivo: documento di valore inestimabile.", "punti": 12}
+            }
+          }
+        ],
+        "combattimento": {"forza": 10, "resistenza": 10, "nota": "Ingaggiare un Leviatano non e' previsto dal regolamento U.C."},
+        "punti_base": 6
+      }
+    },
+    "7": {
+      "nome": "DENDRITI DI ARCTURUS",
+      "genere": "VEGETALE SAPIENS",
+      "descrizione": "Alberi-cattedrale collegati da radici pensanti che coprono un continente intero. Il pianeta e' un unico individuo lentissimo: risponde a una domanda in tre giorni. Le sue risposte sono sempre esatte.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-6": 1}},
+        "arrivi": {"dado": "d6", "esiti": {"1-6": 0}},
+        "atteggiamento": "Benevolo e lentissimo. Non concepisce la fretta.",
+        "attivita": [
+          {
+            "nome": "INTERROGAZIONE DELLA RETE RADICALE",
+            "controllo": "U.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "L'U.C. perde la pazienza e reimbarca prima della risposta.", "punti": 0},
+              "3-7": {"testo": "Il Dendrite risponde: lo S.C. rivela il contenuto completo di un pianeta gia' avvistato.", "punti": 7},
+              "8-10": {"testo": "Il Dendrite disegna nelle cortecce la topografia di un intero livello: 3 pianeti a scelta dell'U.C. su un livello noto vengono rivelati in posizione.", "punti": 11}
+            }
+          }
+        ],
+        "combattimento": {"forza": 0, "resistenza": 8, "nota": "Non combatte. Bruciarlo e' reato capitale per il regolamento U.C."},
+        "punti_base": 7
+      }
+    },
+    "8": {
+      "nome": "FUNGHI-ORACOLO DI TAU CETI",
+      "genere": "VEGETALE SAPIENS",
+      "descrizione": "Cappelle carnose alte un metro che comunicano per spore allucinogene. Parlano solo dentro i sogni di chi respira. Quello che dicono e' vero solo per meta', e non dicono quale meta'.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 6, "3-4": 12, "5-6": 20}},
+        "arrivi": {"dado": "d6", "esiti": {"1-3": 0, "4-6": 4}},
+        "atteggiamento": "Ambiguo. Nessuna ostilita', nessuna sincerita'.",
+        "attivita": [
+          {
+            "nome": "PROFEZIA SPORALE",
+            "controllo": "S.C.",
+            "dado": "d6",
+            "esiti": {
+              "1-2": {"testo": "L'equipaggio delira: la rotta del prossimo movimento e' dichiarata dallo S.C. a sorte.", "punti": -3},
+              "3-4": {"testo": "Visione confusa ma utile: un avvistamento gratuito al prossimo movimento.", "punti": 4},
+              "5-6": {"testo": "L'oracolo indica la direzione del pianeta base dal punto di sbarco.", "punti": 6}
+            }
+          }
+        ],
+        "combattimento": {"forza": 1, "resistenza": 2, "nota": "Le spore passano i filtri standard."},
+        "punti_base": 4
+      }
+    },
+    "9": {
+      "nome": "LIANE PENSANTI DI SIRIO",
+      "genere": "VEGETALE SAPIENS",
+      "descrizione": "Tralci mobili, curiosi e affettuosi, che imparano una lingua in un pomeriggio. Amano avvolgere gli ospiti per capirne la forma. Non si rendono conto della propria forza.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 3, "3-4": 7, "5-6": 11}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 1, "3-5": 2, "6": 5}},
+        "atteggiamento": "Amichevole in modo pericoloso.",
+        "attivita": [
+          {
+            "nome": "SCAMBIO LINGUISTICO",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "Un abbraccio di troppo: un legionario resta immobilizzato, sbarco chiuso.", "punti": -2},
+              "2-4": {"testo": "Vocabolario compilato: la razza entra negli archivi della Repubblica.", "punti": 5},
+              "5-6": {"testo": "Le Liane accettano di seguire l'U.C.: talea imbarcata, coltura di grande pregio.", "punti": 8}
+            }
+          }
+        ],
+        "combattimento": {"forza": 3, "resistenza": 3, "nota": "Stretta involontaria."},
+        "punti_base": 4
+      }
+    },
+    "10": {
+      "nome": "VELENOSI",
+      "genere": "VEGETALE NON SAPIENS",
+      "descrizione": "Distese di arbusti dai fiori splendidi che nebulizzano alcaloidi al passaggio di un corpo caldo. Il pianeta appare un giardino e si comporta da trappola. Il loro veleno, diluito, e' il migliore anestetico conosciuto.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 8, "3-4": 15, "5-6": 25}},
+        "arrivi": {"dado": "d6", "esiti": {"1-3": 2, "4-6": 5}},
+        "atteggiamento": "Passivamente letale.",
+        "attivita": [
+          {
+            "nome": "RACCOLTA DEL PRINCIPIO ATTIVO",
+            "controllo": "U.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "Tuta perforata: intossicazione grave, sbarco interrotto immediatamente.", "punti": -4},
+              "3-7": {"testo": "Raccolta prudente riuscita: due fiale di alcaloide puro.", "punti": 5},
+              "8-10": {"testo": "Isolato il ceppo madre: fornitura farmaceutica per un anno solare.", "punti": 9}
+            }
+          }
+        ],
+        "combattimento": {"forza": 2, "resistenza": 1, "nota": "Si difende soltanto, ma non perdona."},
+        "punti_base": 3
+      }
+    },
+    "11": {
+      "nome": "MOSTRI",
+      "genere": "VEGETALE NON SAPIENS",
+      "descrizione": "Vegetali carnivori di taglia enorme, con fauci fogliari e tentacoli legnosi che scattano piu' veloci di un uomo. Crescono sopra le ossa delle prede. Non lasciano relitti da studiare.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-3": 1, "4-5": 3, "6": 6}},
+        "arrivi": {"dado": "d6", "esiti": {"1-3": 0, "4-5": 1, "6": 2}},
+        "atteggiamento": "Aggressivo, immobile, in attesa.",
+        "attivita": [
+          {
+            "nome": "COMBATTIMENTO",
+            "controllo": "S.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "Il mostro ghermisce un legionario: perdita grave, ritirata obbligata.", "punti": -5},
+              "2-4": {"testo": "Il mostro viene incendiato: passaggio liberato.", "punti": 4},
+              "5-6": {"testo": "Recuperato un seme vitale dal tronco reciso: reperto di prima classe.", "punti": 8}
+            }
+          }
+        ],
+        "combattimento": {"forza": 6, "resistenza": 4, "nota": "Colpisce a 5 metri; sensibile al fuoco."},
+        "punti_base": 3
+      }
+    },
+    "12": {
+      "nome": "CRISTALLINI DI PROCIONE",
+      "genere": "MINERALE SAPIENS",
+      "descrizione": "Poliedri viventi alti quanto un uomo, trasparenti, che pensano rifrangendo la luce della propria stella. Considerano la carne una condizione provvisoria e imbarazzante. Sono cortesissimi.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 3, "3-4": 6, "5-6": 10}},
+        "arrivi": {"dado": "d6", "esiti": {"1-4": 0, "5-6": 2}},
+        "atteggiamento": "Cortese e curioso. Nessuna aggressivita' registrata.",
+        "attivita": [
+          {
+            "nome": "SCAMBIO SCIENTIFICO",
+            "controllo": "U.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "L'U.C. non regge la conversazione ottica: nessun risultato.", "punti": 0},
+              "3-8": {"testo": "Ottengono e cedono teoremi: matematica nuova per la Repubblica.", "punti": 6},
+              "9-10": {"testo": "Donano una lente di calcolo: +1 computer di bordo in permanenza.", "punti": 10}
+            }
+          }
+        ],
+        "combattimento": {"forza": 1, "resistenza": 6, "nota": "Si spezzano solo per urto diretto."},
+        "punti_base": 6
+      }
+    },
+    "13": {
+      "nome": "GEOMETRI DI DENEB",
+      "genere": "MINERALE SAPIENS",
+      "descrizione": "Costrutti di pietra a facce piane che passano l'esistenza a ridisporre il paesaggio secondo proporzioni esatte. L'arrivo di un'astronave e' per loro un errore di simmetria da correggere. Correggono con pazienza infinita.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-3": 4, "4-5": 8, "6": 14}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 1, "3-4": 3, "5-6": 6}},
+        "atteggiamento": "Ossessivo. Smontano tutto cio' che giudicano fuori posto, nave compresa.",
+        "attivita": [
+          {
+            "nome": "NEGOZIATO SULLA SIMMETRIA",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1-2": {"testo": "I Geometri iniziano a smontare i carrelli: partenza d'emergenza, -1 serbatoio.", "punti": -3},
+              "3-4": {"testo": "L'U.C. sposta la nave sull'asse giusto: tolleranza ottenuta.", "punti": 3},
+              "5-6": {"testo": "L'U.C. propone una proporzione nuova: i Geometri la accettano ed erigono un monumento alla Legio.", "punti": 9}
+            }
+          }
+        ],
+        "combattimento": {"forza": 5, "resistenza": 7, "nota": "Lenti ma inarrestabili."},
+        "punti_base": 5
+      }
+    },
+    "14": {
+      "nome": "SILICEI DI ANTARES",
+      "genere": "MINERALE SAPIENS",
+      "descrizione": "Popolo di sabbia coesa che si ricompone dopo ogni tempesta e ricorda tutto cio' che il vento ha portato. Custodiscono per mestiere la memoria altrui. Chiedono in pagamento un ricordo.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 5, "3-4": 9, "5-6": 16}},
+        "arrivi": {"dado": "d6", "esiti": {"1-3": 1, "4-6": 3}},
+        "atteggiamento": "Mercantile. Ogni informazione ha un prezzo non monetario.",
+        "attivita": [
+          {
+            "nome": "BARATTO DI MEMORIA",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "Prelevano piu' del pattuito: l'U.C. dimentica un pianeta: lo S.C. cancella le informazioni di un pianeta noto a scelta.", "punti": -3},
+              "3-7": {"testo": "Baratto onesto: rivelano tutte le informazioni di un pianeta a scelta dell'U.C. sullo stesso livello.", "punti": 6},
+              "8-10": {"testo": "Aprono l'archivio dei venti: lo S.C. rivela la posizione del pianeta base a tutti gli U.C.", "punti": 9}
+            }
+          }
+        ],
+        "combattimento": {"forza": 3, "resistenza": 9, "nota": "Colpirli e' inutile: si ricompongono."},
+        "punti_base": 5
+      }
+    },
+    "15": {
+      "nome": "CONCREZIONI MAGNETICHE",
+      "genere": "MINERALE NON SAPIENS",
+      "descrizione": "Formazioni ferrose che crescono per accrezione lungo le linee di campo del pianeta. Attirano ogni metallo entro cento metri, con la calma dei processi geologici. Compresa la scialuppa.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-3": 3, "4-5": 7, "6": 12}},
+        "arrivi": {"dado": "d6", "esiti": {"1-4": 0, "5-6": 1}},
+        "atteggiamento": "Inerte e attrattivo.",
+        "attivita": [
+          {
+            "nome": "SGANCIO DELLA SCIALUPPA",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1-2": {"testo": "Scialuppa incollata alla concrezione: sbarco perduto, rientro con la seconda scialuppa.", "punti": -3},
+              "3-5": {"testo": "Sgancio riuscito e campione di magnetite imbarcato.", "punti": 4},
+              "6": {"testo": "Recuperato un nucleo a magnetizzazione anomala: pezzo da laboratorio.", "punti": 7}
+            }
+          }
+        ],
+        "combattimento": {"forza": 0, "resistenza": 5, "nota": "Non attacca; trattiene."},
+        "punti_base": 2
+      }
+    },
+    "16": {
+      "nome": "PIETRE-SPORA DI ALTAIR",
+      "genere": "MINERALE NON SAPIENS",
+      "descrizione": "Ciottoli grigi che si riproducono spaccandosi quando avvertono vibrazioni ritmiche. Un passo umano ne genera dieci. Dieci passi ne generano un problema.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 10, "3-4": 25, "5-6": 60}},
+        "arrivi": {"dado": "d6", "esiti": {"1-2": 5, "3-4": 15, "5-6": 40}},
+        "atteggiamento": "Proliferante. Il pericolo cresce a ogni turno di permanenza.",
+        "attivita": [
+          {
+            "nome": "PRELIEVO PRIMA DELLA MOLTIPLICAZIONE",
+            "controllo": "S.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "Le pietre riempiono la stiva e la scialuppa non decolla: turno perso al suolo.", "punti": -4},
+              "2-4": {"testo": "Prelievo rapido e ripartenza: campione sigillato.", "punti": 3},
+              "5-6": {"testo": "Isolata una pietra sterile: unico esemplare studiabile in sicurezza.", "punti": 8}
+            }
+          }
+        ],
+        "combattimento": {"forza": 1, "resistenza": 2, "nota": "Colpirle le moltiplica."},
+        "punti_base": 2
+      }
+    },
+    "17": {
+      "nome": "COLOSSI DI BASALTO",
+      "genere": "MINERALE NON SAPIENS",
+      "descrizione": "Statue alte quaranta metri, ferme da millenni, che si muovono soltanto quando una massa calda passa fra le loro gambe. Nessuno sa chi le abbia scolpite, ne' se qualcuno lo abbia fatto. Camminano una volta e tornano immobili.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-4": 1, "5-6": 3}},
+        "arrivi": {"dado": "d6", "esiti": {"1-6": 0}},
+        "atteggiamento": "Immobile, tranne un passo per visitatore.",
+        "attivita": [
+          {
+            "nome": "ATTRAVERSAMENTO",
+            "controllo": "U.C.",
+            "dado": "d10",
+            "esiti": {
+              "1": {"testo": "Il passo cade sulla scialuppa: perdita totale del mezzo di sbarco.", "punti": -6},
+              "2-8": {"testo": "Passaggio schivato e rilievo fotografico completo del colosso.", "punti": 6},
+              "9-10": {"testo": "Individuata un'iscrizione alla base: prova di una civilta' ignota.", "punti": 11}
+            }
+          }
+        ],
+        "combattimento": {"forza": 9, "resistenza": 10, "nota": "Un solo colpo, poi torna pietra."},
+        "punti_base": 4
+      }
+    },
+    "18": {
+      "nome": "FILONE DI OZ PURO",
+      "genere": "MINERALE DI OZ",
+      "descrizione": "La vena che ogni Legionario spera di trovare: OZ cristallino di prima qualita', affiorante e privo di scorie. Un chilo alimenta un pianeta-logico per un decennio. Il ritrovamento va comunicato all'intera Legio.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-2": 1, "3-4": 2, "5-6": 4}},
+        "arrivi": {"dado": "d6", "esiti": {"1-6": 0}},
+        "atteggiamento": "Nessuno: e' un giacimento. Il rischio e' la fretta dell'equipaggio.",
+        "attivita": [
+          {
+            "nome": "ESTRAZIONE",
+            "controllo": "U.C.",
+            "dado": "d6",
+            "esiti": {
+              "1": {"testo": "Carica mal calcolata: il filone collassa e resta inaccessibile.", "punti": 0},
+              "2-4": {"testo": "Estrazione regolare: stiva caricata di OZ puro.", "punti": 12},
+              "5-6": {"testo": "Il filone prosegue in profondita': carico massimo, concessione mineraria alla Legio.", "punti": 18}
+            }
+          }
+        ],
+        "combattimento": {"forza": 0, "resistenza": 0, "nota": "—"},
+        "punti_base": 10
+      }
+    },
+    "19": {
+      "nome": "VENA DI OZ IMPURO",
+      "genere": "MINERALE DI OZ",
+      "descrizione": "OZ misto a solfuri instabili, di resa incerta e trasporto rischioso. Vale comunque piu' di qualunque altro carico. Va stivato in celle separate, e non sempre l'equipaggio ha voglia di farlo.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-3": 2, "4-6": 5}},
+        "arrivi": {"dado": "d6", "esiti": {"1-6": 0}},
+        "atteggiamento": "Nessuno. Instabile alla movimentazione.",
+        "attivita": [
+          {
+            "nome": "ESTRAZIONE E STIVAGGIO",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1-2": {"testo": "Deflagrazione in stiva: carico perduto e -1 serbatoio.", "punti": -4},
+              "3-8": {"testo": "Stivaggio corretto in celle separate.", "punti": 7},
+              "9-10": {"testo": "La raffinazione di bordo riesce oltre le previsioni: resa da OZ puro.", "punti": 12}
+            }
+          }
+        ],
+        "combattimento": {"forza": 0, "resistenza": 0, "nota": "—"},
+        "punti_base": 6
+      }
+    },
+    "20": {
+      "nome": "GEODE DI OZ VIVENTE",
+      "genere": "MINERALE DI OZ",
+      "descrizione": "Sfera cava di OZ che pulsa con un ritmo regolare e risponde ai segnali radio con lo stesso segnale, in ritardo di undici secondi. Il Consiglio Solare non ha ancora stabilito se sia un minerale o un individuo. Fino a decisione contraria, l'estrazione e' vietata.",
+      "scheda": {
+        "presenze": {"dado": "d6", "esiti": {"1-6": 1}},
+        "arrivi": {"dado": "d6", "esiti": {"1-6": 0}},
+        "atteggiamento": "Sconosciuto. Risponde, ma non si sa a che cosa.",
+        "attivita": [
+          {
+            "nome": "CONTATTO RADIO CON IL GEODE",
+            "controllo": "S.C.",
+            "dado": "d10",
+            "esiti": {
+              "1": {"testo": "L'U.C. tenta l'estrazione in violazione del divieto: il geode tace per sempre, deferimento al Consiglio.", "punti": -8},
+              "2-6": {"testo": "Undici secondi di eco: registrazione consegnata alla C.S.C.", "punti": 10},
+              "7-9": {"testo": "Il geode anticipa la risposta: prova che elabora. Scoperta di rilievo storico.", "punti": 16},
+              "10": {"testo": "Il geode trasmette una serie di coordinate: lo S.C. rivela all'U.C. l'intero contenuto di un livello a sua scelta.", "punti": 20}
+            }
+          }
+        ],
+        "combattimento": {"forza": 0, "resistenza": 4, "nota": "Estrazione vietata dal Consiglio Solare."},
+        "punti_base": 12
+      }
+    }
+  }
+}
