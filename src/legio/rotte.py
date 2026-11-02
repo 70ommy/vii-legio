@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .dadi import Dadiera
 from .modello import (
     DIREZIONI,
     LIVELLI,
@@ -19,9 +20,12 @@ from .modello import (
     VERTICALI,
     Galassia,
     Posizione,
+    distanza_piana,
     normalizza_direzione,
     scomponi_direzione,
 )
+
+_DIREZIONE_DN = {1: "N", 2: "E", 3: "S", 4: "O", 5: "SU", 6: "GIU"}
 
 _SEGMENTO = re.compile(r"([0-9]+)\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\-]*)")
 
@@ -212,8 +216,15 @@ def esegui_movimento(
     atterraggio_dichiarato: bool = False,
     parsec_per_serbatoio: int = PARSEC_PER_SERBATOIO,
     controllo_carburante: bool = True,
+    dadiera: Dadiera | None = None,
+    princeps_psi: bool = False,
 ) -> Movimento:
-    """Traccia la rotta, ripercorrela per gli avvistamenti e stabilisce dove si ferma."""
+    """Traccia la rotta, ripercorrela per gli avvistamenti e stabilisce dove si ferma.
+
+    `dadiera` serve solo se la rotta puo' incontrare una Distorsione Nullius (il
+    teletrasporto e' segreto e casuale); `princeps_psi` decide se una Rete
+    Magneto-Gravitazionale incontrata viene comunicata all'U.C. o resta silenziosa.
+    """
     if not 0 <= radar <= RADAR_MASSIMI:
         raise RottaNonValida(f"i radar imbarcati vanno da 0 a {RADAR_MASSIMI}")
     if serbatoi < 1:
@@ -235,6 +246,7 @@ def esegui_movimento(
     limite_utile = len(passi) - 1
     atterraggio_su: str | None = None
     atterraggio_obbligato = False
+    anomalia_incontrata = None
 
     for ordine, passo in enumerate(passi):
         # Senza radar a bordo non esiste alcun avvistamento, nemmeno a distanza zero.
@@ -246,6 +258,14 @@ def esegui_movimento(
                 dx = pianeta.posizione.x - passo.posizione.x
                 dy = pianeta.posizione.y - passo.posizione.y
                 visti.setdefault(pianeta.id, []).append((passo.indice, distanza, dx, dy, passo.posizione))
+
+        # R.M.G./D.N. non sono rilevabili dai radar: bloccano il movimento a prescindere
+        # da tutto il resto. Non si controlla il parsec di partenza (ci si trovava gia' li').
+        anomalia = galassia.anomalia_a(passo.posizione) if ordine else None
+        if anomalia is not None and anomalia.tipo in ("RMG", "DN"):
+            limite_utile = ordine
+            anomalia_incontrata = anomalia
+            break
 
         attraversato = galassia.a(passo.posizione)
         if attraversato is None or ordine == 0 or attraversato is pianeta_di_partenza:
@@ -269,6 +289,24 @@ def esegui_movimento(
         break
 
     passi = passi[: limite_utile + 1]
+
+    if anomalia_incontrata is not None and anomalia_incontrata.tipo == "RMG":
+        motivo = "bloccato da una rete magneto-gravitazionale"
+    elif anomalia_incontrata is not None and anomalia_incontrata.tipo == "DN":
+        motivo = "bloccato da una distorsione nullius"
+        if dadiera is None:
+            raise RottaNonValida(
+                "una Distorsione Nullius richiede la Dadiera per il teletrasporto segreto"
+            )
+        nuova_posizione = _teletrasporto_dn(passi[-1].posizione, galassia.lato, dadiera)
+        ultimo = passi[-1]
+        passi[-1] = Passo(ultimo.indice, nuova_posizione, ultimo.cambio_livello)
+        pianeta_dn = galassia.a(nuova_posizione)
+        if pianeta_dn is not None:
+            # Sez. avanzata, parte I·A — l'atterraggio su una D.N. e' sempre immediato e obbligato.
+            atterraggio_su = pianeta_dn.id
+            atterraggio_obbligato = True
+
     indice_finale = passi[-1].indice
     avvistamenti = _componi_avvistamenti(visti, indice_finale)
 
@@ -286,8 +324,54 @@ def esegui_movimento(
         atterraggio_su=atterraggio_su,
         atterraggio_obbligato=atterraggio_obbligato,
     )
-    movimento.comunicazioni = _comunicazioni(movimento, galassia)
+    movimento.comunicazioni = _comunicazioni(movimento, galassia, princeps_psi=princeps_psi)
     return movimento
+
+
+def _teletrasporto_dn(posizione: Posizione, lato: int, dadiera: Dadiera) -> Posizione:
+    """Sez. avanzata, parte I·A — la D.N. sposta la nave secondo due esiti segreti.
+
+    Il regolamento non chiarisce la distanza per gli esiti Alto/Basso (il secondo
+    dado arriva fino a 6, ma i livelli sono solo 4): si assume in questi due casi
+    uno spostamento di un solo livello, non di «distanza» livelli.
+    """
+    direzione = _DIREZIONE_DN[dadiera.d6("D.N. — I esito, direzione segreta").esito]
+    distanza = dadiera.d6("D.N. — II esito, distanza segreta").esito
+    if direzione in VERTICALI:
+        verso = -1 if direzione == "SU" else 1
+        candidata = posizione.traslata(0, 0, verso)
+        return candidata if 0 <= candidata.livello < LIVELLI else posizione
+    dx, dy = DIREZIONI[direzione]
+    x, y = posizione.x, posizione.y
+    for _ in range(distanza):
+        candidata = Posizione(posizione.livello, x + dx, y + dy)
+        if not candidata.dentro(lato):
+            break
+        x, y = candidata.x, candidata.y
+    return Posizione(posizione.livello, x, y)
+
+
+def distanza_minima_da_buco_nero(movimento: Movimento, galassia: Galassia) -> int | None:
+    """Sez. avanzata, parte I·A — distanza minima, in parsec, fra la rotta e un B.N.
+
+    Nessun B.N. e' rilevabile dai radar: il rischio si controlla sempre, in
+    segreto, a fine movimento — non durante il tracciamento, e senza interrompere
+    la rotta. Ritorna `None` se nessun parsec percorso rientra nel raggio d'effetto
+    di un B.N.
+    """
+    buchi_neri = [a for a in galassia.anomalie if a.tipo == "BN"]
+    if not buchi_neri:
+        return None
+    minime: list[int] = []
+    for buco in buchi_neri:
+        for passo in movimento.passi:
+            nucleo = next((c for c in buco.celle if c.livello == passo.posizione.livello), None)
+            if nucleo is None:
+                continue
+            distanza = distanza_piana(passo.posizione, nucleo)
+            if distanza <= (buco.raggio_effetto or 0):
+                minime.append(distanza)
+    return min(minime) if minime else None
 
 
 def _componi_avvistamenti(
@@ -315,9 +399,31 @@ def _componi_avvistamenti(
     return risultato
 
 
-def _comunicazioni(movimento: Movimento, galassia: Galassia) -> list[str]:
+def _comunicazioni(movimento: Movimento, galassia: Galassia, princeps_psi: bool = False) -> list[str]:
     """Le frasi che lo S.C. pronuncia, «in modo da essere recepito da tutti»."""
     righe: list[str] = []
+
+    if movimento.motivo_fermata == "bloccato da una distorsione nullius":
+        righe.append(
+            "La rotta viene bloccata da un fenomeno non rilevato dai radar."
+            " La posizione da cui ripartira' il prossimo movimento resta segreta."
+        )
+        if movimento.atterraggio_su:
+            pianeta = galassia.per_id(movimento.atterraggio_su)
+            righe.append(
+                f"ATTERRAGGIO immediato e obbligatorio sul sistema in {pianeta.posizione.sigla}."
+            )
+        return righe
+
+    if movimento.motivo_fermata == "bloccato da una rete magneto-gravitazionale":
+        if princeps_psi:
+            righe.append(
+                f"Il Princeps Psi percepisce una Rete Magneto-Gravitazionale in {movimento.arrivo.sigla}:"
+                " la rotta si interrompe qui."
+            )
+        # Senza Psi a bordo il blocco resta senza spiegazione: nessuna comunicazione (da regolamento).
+        return righe
+
     if movimento.radar == 0:
         righe.append("Nessun radar a bordo: nessun avvistamento possibile.")
     elif not movimento.avvistamenti:

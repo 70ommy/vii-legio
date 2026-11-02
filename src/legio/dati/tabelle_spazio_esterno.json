@@ -1,0 +1,59 @@
+{
+  "titolo": "TABELLE SPAZIO ESTERNO — C.S.C.",
+  "classifica": "S.C. Classe A · Livello Avanzato Segretissimo",
+  "avvertenza_ricostruzione": "Tabelle ricostruite sui meccanismi della Parte I del regolamento avanzato (rischio del Buco Nero, massa in atterraggio, zone di atterraggio). Il regolamento in nostro possesso descrive il meccanismo ma non riporta i valori esatti delle tabelle C/O/P: sostituibili con quelle originali mantenendo questo formato.",
+  "TAB_C": {
+    "nome": "Danni subiti",
+    "tabelle": [
+      {
+        "quando": {},
+        "senza_dado": true,
+        "per_numero_danni": [
+          {"danni": "1-2", "dati": {"effetto": "Danni superficiali: nessuna avaria di rilievo."}},
+          {"danni": "3-4", "dati": {"effetto": "Un impianto secondario e' fuori uso (radar o computer, a scelta dello S.C.)."}},
+          {"danni": "5-6", "dati": {"effetto": "Motori danneggiati: autonomia dei serbatoi dimezzata per il turno successivo."}},
+          {"danni": "7+", "dati": {"effetto": "Nave distrutta: il Segnalino esce di scena."}}
+        ]
+      }
+    ]
+  },
+  "TAB_O": {
+    "nome": "Rischio di massa in atterraggio",
+    "tabelle": [
+      {
+        "quando": {"classe": ["roccioso bruciato", "glaciale morto", "arido"]},
+        "dado": "d6",
+        "esiti": [
+          {"faccia": "6", "dati": {"danni": 1}}
+        ]
+      },
+      {
+        "quando": {"classe": ["gigante gassoso"]},
+        "dado": "d6",
+        "esiti": [
+          {"faccia": "5-6", "dati": {"danni": 2}}
+        ]
+      },
+      {
+        "quando": {},
+        "dado": "d6",
+        "esiti": []
+      }
+    ]
+  },
+  "TAB_P": {
+    "nome": "Zone di atterraggio",
+    "tabelle": [
+      {
+        "quando": {},
+        "dado": "d10",
+        "esiti": [
+          {"faccia": "1-3", "dati": {"zona": "APERTA", "presenza_aliena": "NORMALE"}},
+          {"faccia": "4-6", "dati": {"zona": "RIPARO NATURALE", "presenza_aliena": "FORTE"}},
+          {"faccia": "7-9", "dati": {"zona": "PERIFERIA", "presenza_aliena": "ASSENTE"}},
+          {"faccia": "10", "dati": {"zona": "SANTUARIO", "presenza_aliena": "FORTE"}}
+        ]
+      }
+    ]
+  }
+}

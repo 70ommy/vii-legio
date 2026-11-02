@@ -2,14 +2,22 @@
 
 import unittest
 
-from legio.modello import Galassia, Pianeta, Posizione, scomponi_direzione
-from legio.rotte import RottaNonValida, analizza_rotta, esegui_movimento
+from legio.dadi import Dadiera
+from legio.modello import Anomalia, Galassia, Pianeta, Posizione, scomponi_direzione
+from legio.rotte import (
+    RottaNonValida,
+    analizza_rotta,
+    distanza_minima_da_buco_nero,
+    esegui_movimento,
+)
 
 
-def galassia_di_prova(*coordinate: tuple[int, int, int], lato: int = 12) -> Galassia:
+def galassia_di_prova(
+    *coordinate: tuple[int, int, int], lato: int = 12, anomalie: list[Anomalia] | None = None
+) -> Galassia:
     pianeti = [Pianeta(posizione=Posizione(*c)) for c in coordinate]
     pianeti[0].base = True
-    galassia = Galassia(seme="PROVA", lato=lato, pianeti=pianeti)
+    galassia = Galassia(seme="PROVA", lato=lato, pianeti=pianeti, anomalie=list(anomalie or []))
     galassia.reindicizza()
     return galassia
 
@@ -123,6 +131,64 @@ class TestMovimento(unittest.TestCase):
             galassia, Posizione(0, 0, 0), analizza_rotta("1 E"), radar=3, serbatoi=1
         )
         self.assertNotIn("L2·A1", [a.pianeta_id for a in movimento.avvistamenti])
+
+
+class TestAnomalieSpazioEsterno(unittest.TestCase):
+    def test_rmg_blocca_la_rotta_senza_comunicazione(self):
+        rmg = Anomalia(tipo="RMG", celle=[Posizione(0, 0, 2)])
+        galassia = galassia_di_prova((0, 0, 0), anomalie=[rmg])
+        movimento = esegui_movimento(
+            galassia, Posizione(0, 0, 0), analizza_rotta("5 S"), radar=3, serbatoi=2
+        )
+        self.assertEqual(movimento.arrivo, Posizione(0, 0, 2))
+        self.assertEqual(movimento.motivo_fermata, "bloccato da una rete magneto-gravitazionale")
+        self.assertEqual(movimento.comunicazioni, [])
+
+    def test_rmg_comunicata_con_princeps_psi(self):
+        rmg = Anomalia(tipo="RMG", celle=[Posizione(0, 0, 2)])
+        galassia = galassia_di_prova((0, 0, 0), anomalie=[rmg])
+        movimento = esegui_movimento(
+            galassia, Posizione(0, 0, 0), analizza_rotta("5 S"), radar=3, serbatoi=2,
+            princeps_psi=True,
+        )
+        self.assertTrue(any("Rete Magneto-Gravitazionale" in riga for riga in movimento.comunicazioni))
+
+    def test_dn_blocca_la_rotta_e_sposta_la_nave_in_segreto(self):
+        dn = Anomalia(tipo="DN", celle=[Posizione(0, 5, 5)])
+        galassia = galassia_di_prova((0, 0, 0), anomalie=[dn], lato=12)
+        movimento = esegui_movimento(
+            galassia, Posizione(0, 0, 0), analizza_rotta("5 E, 5 S"), radar=3, serbatoi=3,
+            dadiera=Dadiera("DISTORSIONE"),
+        )
+        self.assertEqual(movimento.motivo_fermata, "bloccato da una distorsione nullius")
+        self.assertTrue(movimento.arrivo.dentro(galassia.lato))
+        for riga in movimento.comunicazioni:
+            self.assertNotIn(movimento.arrivo.sigla, riga)
+
+    def test_dn_senza_dadiera_e_respinta(self):
+        dn = Anomalia(tipo="DN", celle=[Posizione(0, 2, 0)])
+        galassia = galassia_di_prova((0, 0, 0), anomalie=[dn])
+        with self.assertRaises(RottaNonValida):
+            esegui_movimento(galassia, Posizione(0, 0, 0), analizza_rotta("5 E"), radar=3, serbatoi=2)
+
+    def test_buco_nero_non_interrompe_la_rotta_ma_si_puo_calcolare_la_distanza(self):
+        bn = Anomalia(tipo="BN", celle=[Posizione(0, 6, 2)], raggio_effetto=4)
+        galassia = galassia_di_prova((0, 0, 0), anomalie=[bn])
+        movimento = esegui_movimento(
+            galassia, Posizione(0, 0, 0), analizza_rotta("8 E"), radar=0, serbatoi=2
+        )
+        self.assertEqual(movimento.motivo_fermata, "rotta completata")
+        self.assertEqual(movimento.arrivo, Posizione(0, 8, 0))
+        distanza = distanza_minima_da_buco_nero(movimento, galassia)
+        self.assertIsNotNone(distanza)
+        self.assertLessEqual(distanza, 4)
+
+    def test_nessun_buco_nero_nessuna_distanza(self):
+        galassia = galassia_di_prova((0, 0, 0))
+        movimento = esegui_movimento(
+            galassia, Posizione(0, 0, 0), analizza_rotta("2 E"), radar=3, serbatoi=1
+        )
+        self.assertIsNone(distanza_minima_da_buco_nero(movimento, galassia))
 
 
 if __name__ == "__main__":

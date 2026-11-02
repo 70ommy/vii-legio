@@ -91,6 +91,8 @@ Il regolamento non le fissa; sono tutte in un punto solo e modificabili.
 | Autonomia di un serbatoio | 5 parsec | dall'esempio della sez. E: 15 parsec dichiarati con 3 serbatoi |
 | Costo di un cambio di livello | 4 parsec | è la distanza fra i livelli fissata dalla sez. C |
 | Pianeta base | non viene barrato | è la casa della Legio: barrarlo alla prima ripartenza la renderebbe irraggiungibile |
+| E. (unità d'equipaggio) per nave | 3 | il regolamento avanzato usa F.C. per singolo E. ma non ne fissa il numero per nave; valore in attesa di conferma dal manuale fisico |
+| Classe/massa della nave (formula Buco Nero) | 3 classi, massa 1/2/3 | il regolamento avanzato usa "MASSA (livello della nave)" nella formula del B.N. senza definirla; scelta dall'U.C. alla creazione, in attesa di conferma dal manuale fisico |
 
 Sono in [`src/legio/modello.py`](src/legio/modello.py) (`LATO_PREDEFINITO`,
 `PARSEC_PER_SERBATOIO`, `PARSEC_FRA_LIVELLI`).

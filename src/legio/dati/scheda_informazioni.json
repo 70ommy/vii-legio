@@ -34,9 +34,9 @@
           "quando": {},
           "dado": "d6",
           "esiti": [
-            {"faccia": "1-3", "dati": {"radioattivita": "NULLA", "nota_radio": "Fondo entro i limiti di tolleranza dell'equipaggio."}},
-            {"faccia": "4-5", "dati": {"radioattivita": "DEBOLE", "nota_radio": "Permanenza al suolo consentita per un turno soltanto."}},
-            {"faccia": "6", "dati": {"radioattivita": "LETALE", "nota_radio": "Sbarco vietato dal regolamento U.C. senza schermatura pesante."}}
+            {"faccia": "1-3", "dati": {"radioattivita": "0", "nota_radio": "Fondo entro i limiti di tolleranza dell'equipaggio: nessuna tuta necessaria."}},
+            {"faccia": "4-5", "dati": {"radioattivita": "α", "nota_radio": "Radiazioni di 1° livello: tuta anti-radio BIMBER consigliata allo sbarco (F.C. dell'E. protetto: 2 invece di 3)."}},
+            {"faccia": "6", "dati": {"radioattivita": "β", "nota_radio": "Radiazioni di 2° livello: tuta anti-radio LEGGY necessaria allo sbarco (F.C. dell'E. protetto: 1 invece di 3)."}}
           ]
         }
       ]

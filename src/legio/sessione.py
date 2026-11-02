@@ -17,13 +17,17 @@ from .modello import (
     Galassia,
     Pianeta,
     Posizione,
+    occulta_per_uc,
 )
-from .rotte import Movimento, analizza_rotta, descrivi_rotta, esegui_movimento
+from .rotte import Movimento, analizza_rotta, descrivi_rotta, distanza_minima_da_buco_nero, esegui_movimento
 from .schede import (
     completa_informazioni,
     prossimo_livello,
     risolvi_attivita,
+    risolvi_danni,
     risolvi_livello,
+    risolvi_massa_atterraggio,
+    risolvi_zona_atterraggio,
     tira_arrivi,
     tira_presenze,
     voce_gi,
@@ -52,6 +56,14 @@ class Nave:
     a_terra: str | None = None
     informazioni_residue: int = 0
     ultimo_movimento: dict | None = None
+    # Regolamento avanzato — spazio esterno (assunzioni non confermate dal manuale
+    # fisico: vedi tabella "Assunzioni prese" nel README).
+    classe_massa: int = 2  # 1 leggera, 2 media, 3 pesante — usata dalla formula del B.N.
+    princeps_psi: bool = False  # percepisce R.M.G./D.N. altrimenti invisibili
+    riatterraggio_usato: bool = False  # sez. D — un solo nuovo tentativo di zona per atterraggio
+    # Terminale di bordo (pacchetto 3D): l'U.C. dichiara la rotta dal telefono; resta qui
+    # in attesa finche' lo S.C. non la esegue dalla consolle. None = nessuna dichiarazione.
+    dichiarazione_in_attesa: dict | None = None
 
     def in_chiaro(self) -> dict:
         return {
@@ -77,6 +89,9 @@ class Nave:
             "a_terra": self.a_terra,
             "informazioni_residue": self.informazioni_residue,
             "ultimo_movimento": self.ultimo_movimento,
+            "classe_massa": self.classe_massa,
+            "princeps_psi": self.princeps_psi,
+            "dichiarazione_in_attesa": self.dichiarazione_in_attesa,
         }
 
 
@@ -90,6 +105,7 @@ class Sessione:
     registro: list[dict] = field(default_factory=list)
     turno: int = 1
     ordine_turno: list[str] = field(default_factory=list)
+    mosse_turno: list[str] = field(default_factory=list)  # chi ha gia' mosso in questo turno (indicatore, non vincolo)
     spazio_esterno: bool = False
     parsec_per_serbatoio: int = PARSEC_PER_SERBATOIO
     controllo_carburante: bool = True
@@ -107,8 +123,60 @@ class Sessione:
         distribuzione: str = "bilanciata",
         ufficiali: list[str] | None = None,
         spazio_esterno: bool = False,
+        dettagli_navi: dict[str, dict] | None = None,
     ) -> Sessione:
         galassia, dadiera = genera_galassia(seme=seme, lato=lato, distribuzione=distribuzione)
+        return cls._avvia(
+            galassia, dadiera,
+            distribuzione=distribuzione,
+            ufficiali=ufficiali,
+            spazio_esterno=spazio_esterno,
+            dettagli_navi=dettagli_navi,
+            messaggio_creazione=(
+                f"Zona di galassia creata: 4 livelli, 36 sistemi, TABULA {galassia.lato}×{galassia.lato} parsec."
+                f" Pianeta base in {galassia.base.posizione.riferimento}. Matricola {galassia.seme}."
+            ),
+        )
+
+    @classmethod
+    def nuova_da_galassia(
+        cls,
+        galassia: Galassia,
+        seme: str | None = None,
+        ufficiali: list[str] | None = None,
+        spazio_esterno: bool = False,
+        dettagli_navi: dict[str, dict] | None = None,
+    ) -> Sessione:
+        """Regolamento avanzato, Parte II — avvia la partita su una galassia costruita a mano.
+
+        La Dadiera serve comunque durante il gioco (D.N., TAB. O/P): si usa il seme
+        indicato o, in mancanza, la matricola assegnata dall'editor alla bozza.
+        """
+        dadiera = Dadiera(seme or galassia.seme or Dadiera.seme_casuale())
+        return cls._avvia(
+            galassia, dadiera,
+            distribuzione="manuale",
+            ufficiali=ufficiali,
+            spazio_esterno=spazio_esterno,
+            dettagli_navi=dettagli_navi,
+            messaggio_creazione=(
+                f"Zona di galassia creata a mano dal master: TABULA {galassia.lato}×{galassia.lato} parsec."
+                f" Pianeta base in {galassia.base.posizione.riferimento}. Matricola {galassia.seme}."
+            ),
+        )
+
+    @classmethod
+    def _avvia(
+        cls,
+        galassia: Galassia,
+        dadiera: Dadiera,
+        *,
+        distribuzione: str,
+        ufficiali: list[str] | None,
+        spazio_esterno: bool,
+        dettagli_navi: dict[str, dict] | None,
+        messaggio_creazione: str,
+    ) -> Sessione:
         sessione = cls(
             galassia=galassia,
             dadiera=dadiera,
@@ -116,14 +184,18 @@ class Sessione:
             distribuzione=distribuzione,
         )
         nomi = [n.strip().upper() for n in (ufficiali or UFFICIALI_PREDEFINITI) if n.strip()]
+        dettagli_navi = dettagli_navi or {}
         base = galassia.base.posizione
         for indice, nome in enumerate(nomi or list(UFFICIALI_PREDEFINITI)):
+            dettagli = dettagli_navi.get(nome, {})
             nave = Nave(
                 nome=nome,
                 colore=COLORI_SN[indice % len(COLORI_SN)],
                 posizione=base,
                 partenza_movimento=base,
                 a_terra=galassia.base.id,
+                classe_massa=int(dettagli.get("classe_massa") or 2),
+                princeps_psi=bool(dettagli.get("princeps_psi")),
             )
             # Le informazioni si possono chiedere anche all'inizio del movimento (sez. F).
             nave.informazioni_residue = nave.computer
@@ -132,12 +204,7 @@ class Sessione:
         sessione.ordine_turno = list(sessione.navi)
         dadiera.mescola(sessione.ordine_turno)
 
-        sessione.annota(
-            "C.S.C.",
-            "sistema",
-            f"Zona di galassia creata: 4 livelli, 36 sistemi, TABULA {galassia.lato}×{galassia.lato} parsec."
-            f" Pianeta base in {galassia.base.posizione.riferimento}. Matricola {galassia.seme}.",
-        )
+        sessione.annota("C.S.C.", "sistema", messaggio_creazione)
         sessione.annota(
             "C.S.C.",
             "sistema",
@@ -195,9 +262,12 @@ class Sessione:
             atterraggio_dichiarato=atterraggio,
             parsec_per_serbatoio=self.parsec_per_serbatoio,
             controllo_carburante=self.controllo_carburante,
+            dadiera=self.dadiera,
+            princeps_psi=nave.princeps_psi,
         )
 
         self._barra_pianeta_di_partenza(nave, movimento)
+        self._rischio_buco_nero(nave, movimento)
 
         nave.partenza_movimento = movimento.partenza
         nave.posizione = movimento.arrivo
@@ -207,6 +277,10 @@ class Sessione:
         nave.informazioni_residue = nave.computer
         nave.a_terra = movimento.atterraggio_su
         nave.ultimo_movimento = movimento.in_chiaro()
+        # Chi muove ha "fatto il suo turno" (indicatore morbido) e non ha piu' nulla in attesa.
+        if nave.nome not in self.mosse_turno:
+            self.mosse_turno.append(nave.nome)
+        nave.dichiarazione_in_attesa = None
 
         for pianeta_id in {a.pianeta_id for a in movimento.avvistamenti}:
             pianeta = self.galassia.per_id(pianeta_id)
@@ -249,6 +323,34 @@ class Sessione:
             "sistema",
             f"Il sistema in {pianeta.posizione.riferimento} viene barrato sulla TABULA:"
             " ormai noto, non e' piu' visitabile da nessuno.",
+        )
+
+    def _rischio_buco_nero(self, nave: Nave, movimento: Movimento) -> None:
+        """Sez. avanzata, parte I·A — B.N. invisibile ai radar: rischio sempre controllato.
+
+        `DISTANZA − MASSA(classe_nave) − ESITO(d6)`: un risultato negativo e' un
+        numero di danni, letto sulla TAB. C. La posizione del B.N. non si rivela mai.
+        """
+        distanza = distanza_minima_da_buco_nero(movimento, self.galassia)
+        if distanza is None:
+            return
+        tiro = self.dadiera.d6(f"B.N. — rischio per {nave.nome}")
+        numero_danni = distanza - nave.classe_massa - tiro.esito
+        if numero_danni <= 0:
+            self.annota(
+                "S.C.",
+                "sistema",
+                f"{nave.nome} sfiora un campo gravitazionale anomalo (posizione non rivelata):"
+                f" nessun danno [{tiro.dado} → {tiro.esito}].",
+            )
+            return
+        resoconto = risolvi_danni(numero_danni, self.dadiera)
+        self.annota(
+            "S.C.",
+            "danni",
+            f"{nave.nome} subisce {numero_danni} danni da un campo gravitazionale anomalo"
+            f" (posizione non rivelata) [{tiro.dado} → {tiro.esito}]: {resoconto['testo']}",
+            resoconto,
         )
 
     def _ripeti_informazioni_note(self, movimento: Movimento) -> list[dict]:
@@ -365,6 +467,7 @@ class Sessione:
             )
 
         nave.a_terra = pianeta.id
+        nave.riatterraggio_usato = False
         risposta: dict = {"pianeta": pianeta.id, "sigla": pianeta.posizione.sigla, "informazioni": [], "punti": 0}
 
         self.annota(nave.nome, "atterraggio", f"«ATTERRAGGIO sul sistema in {pianeta.posizione.sigla}.»")
@@ -379,6 +482,18 @@ class Sessione:
             )
         risposta["informazioni"] = mancanti
         risposta["pianeta_stato"] = pianeta.in_chiaro()
+
+        if self.spazio_esterno:
+            resoconto_massa = risolvi_massa_atterraggio(pianeta, self.dadiera)
+            self.annota("S.C.", "sistema", f"TAB. O — {resoconto_massa['testo']}", resoconto_massa)
+            risposta["rischio_massa"] = resoconto_massa
+            if resoconto_massa["danni"]:
+                resoconto_danni = risolvi_danni(resoconto_massa["danni"], self.dadiera)
+                self.annota("S.C.", "danni", f"TAB. C — {resoconto_danni['testo']}", resoconto_danni)
+                risposta["danni_massa"] = resoconto_danni
+            resoconto_zona = risolvi_zona_atterraggio(pianeta, self.dadiera)
+            self.annota("S.C.", "sistema", f"TAB. P — {resoconto_zona['testo']}", resoconto_zona)
+            risposta["zona_atterraggio"] = resoconto_zona
 
         riferimento = pianeta.informazioni.get("rif_gi")
         if riferimento is None:
@@ -417,12 +532,100 @@ class Sessione:
         risposta.update({"attivita": esiti, "arrivi_per_turno": arrivi, "punti": punti, "punti_totali": nave.punti})
         return risposta
 
+    def riatterra(self, nome: str) -> dict:
+        """Sez. avanzata, parte I·D — l'U.C. insoddisfatto della zona tenta un nuovo atterraggio.
+
+        Un solo tentativo per sbarco; a differenza di un decollo vero non barra il
+        pianeta (non lo rende "noto").
+        """
+        nave = self.nave(nome)
+        if not self.spazio_esterno:
+            raise ErroreDiRegolamento("il riatterraggio e' una regola dello spazio esterno")
+        if not nave.a_terra:
+            raise ErroreDiRegolamento(f"{nave.nome} non e' atterrata: nessun riatterraggio possibile.")
+        if nave.riatterraggio_usato:
+            raise ErroreDiRegolamento(f"{nave.nome} ha gia' tentato un riatterraggio su questo sbarco.")
+
+        nave.riatterraggio_usato = True
+        pianeta = self.galassia.per_id(nave.a_terra)
+        resoconto_zona = risolvi_zona_atterraggio(pianeta, self.dadiera)
+        self.annota(
+            nave.nome,
+            "sistema",
+            f"«RIATTERRAGGIO — nuova zona.» TAB. P — {resoconto_zona['testo']}",
+            resoconto_zona,
+        )
+        return resoconto_zona
+
+    # ------------------------------------------------------------------ #
+    #  Dichiarazioni dal Terminale di bordo (pacchetto 3D)
+    # ------------------------------------------------------------------ #
+
+    @property
+    def turno_di(self) -> str | None:
+        """Indicatore morbido: il primo dell'ordine che non ha ancora mosso in questo turno.
+
+        Non e' un vincolo — `dichiara_rotta` non lo controlla. Serve al Terminale e alla
+        consolle per *mostrare* di chi e' il turno; l'arbitro resta lo S.C.
+        """
+        for nome in self.ordine_turno:
+            if nome not in self.mosse_turno:
+                return nome
+        return None
+
+    def deposita_dichiarazione(
+        self,
+        nome: str,
+        rotta: str,
+        serbatoi: int,
+        radar: int,
+        computer: int | None = None,
+        atterraggio: bool = False,
+    ) -> dict:
+        """L'U.C. dichiara la rotta dal telefono; non viene eseguita finche' lo S.C. non risolve."""
+        nave = self.nave(nome)
+        if not 0 <= radar <= RADAR_MASSIMI:
+            raise ErroreDiRegolamento(f"i radar imbarcati vanno da 0 a {RADAR_MASSIMI}")
+        analizza_rotta(rotta)  # convalida la forma della rotta subito, senza eseguirla
+        nave.dichiarazione_in_attesa = {
+            "rotta": rotta,
+            "serbatoi": serbatoi,
+            "radar": radar,
+            "computer": computer,
+            "atterraggio": bool(atterraggio),
+            "turno": self.turno,
+        }
+        return {"nave": nave.nome, "dichiarazione": nave.dichiarazione_in_attesa}
+
+    def annulla_dichiarazione(self, nome: str) -> dict:
+        """Ritira una dichiarazione in attesa (la puo' fare l'U.C. o lo S.C.)."""
+        nave = self.nave(nome)
+        nave.dichiarazione_in_attesa = None
+        return {"nave": nave.nome}
+
+    def risolvi_dichiarazione(self, nome: str) -> dict:
+        """Lo S.C. esegue dalla consolle la rotta dichiarata dall'U.C., riusando `dichiara_rotta`."""
+        nave = self.nave(nome)
+        dichiarazione = nave.dichiarazione_in_attesa
+        if not dichiarazione:
+            raise ErroreDiRegolamento(f"{nave.nome} non ha dichiarazioni in attesa.")
+        # `dichiara_rotta` azzera da se' la dichiarazione in attesa a esecuzione avvenuta.
+        return self.dichiara_rotta(
+            nome=nave.nome,
+            rotta=dichiarazione["rotta"],
+            serbatoi=int(dichiarazione["serbatoi"]),
+            radar=int(dichiarazione["radar"]),
+            computer=dichiarazione.get("computer"),
+            atterraggio=bool(dichiarazione.get("atterraggio")),
+        )
+
     # ------------------------------------------------------------------ #
     #  Turni
     # ------------------------------------------------------------------ #
 
     def chiudi_turno(self) -> dict:
         self.turno += 1
+        self.mosse_turno = []  # nuovo turno: tutti tornano "da muovere"
         for nave in self.navi.values():
             nave.informazioni_residue = nave.computer
         self.annota("C.S.C.", "sistema", f"Inizio del turno {self.turno}.")
@@ -436,16 +639,13 @@ class Sessione:
         """`vista='sc'` mostra tutto; `vista='uc'` e' la plancia proiettata ai Comandanti."""
         galassia = self.galassia.in_chiaro()
         if vista == "uc":
-            visibili = []
-            for pianeta in galassia["pianeti"]:
-                if pianeta["noto"] or pianeta["base"] or pianeta["barrato"]:
-                    visibili.append(pianeta)
-            galassia["pianeti"] = visibili
-            galassia["seme"] = "— RISERVATO —"
+            galassia = occulta_per_uc(galassia)
         return {
             "vista": vista,
             "turno": self.turno,
             "ordine_turno": list(self.ordine_turno),
+            "turno_di": self.turno_di,
+            "mosse_turno": list(self.mosse_turno),
             "distribuzione": self.distribuzione,
             "spazio_esterno": self.spazio_esterno,
             "parsec_per_serbatoio": self.parsec_per_serbatoio,

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VII LEGIO — Terminale di bordo</title>
+  <!-- Percorsi assoluti: la pagina e' servita da /uc, gli asset stanno alla radice. -->
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/terminale.css">
+</head>
+<body>
+<div class="terminale" id="terminale" hidden>
+
+  <header class="barra" id="barra">
+    <div class="stemma" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17"/>
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(60 50 50)"/>
+        <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(-60 50 50)"/>
+        <circle class="nucleo" cx="50" cy="50" r="9"/>
+      </svg>
+    </div>
+    <div class="titoli">
+      <p class="etichetta-piccola">Terminale di bordo · U.C.</p>
+      <h1 id="mio-nome">—</h1>
+    </div>
+    <div class="stato-turno">
+      <span class="etichetta-piccola">Turno</span>
+      <strong id="mio-turno">—</strong>
+    </div>
+  </header>
+
+  <section class="pannello pannello-nave">
+    <h2>La mia nave</h2>
+    <dl class="griglia-stat" id="mie-stat"></dl>
+    <p class="ordine-turno" id="ordine-turno"></p>
+  </section>
+
+  <section class="pannello pannello-comando">
+    <h2>Dichiara la rotta</h2>
+    <p class="tocca" id="tocca"></p>
+    <div class="attesa-dichiarazione" id="attesa-dichiarazione" hidden></div>
+    <div class="modulo-rotta">
+      <label class="campo campo-largo">
+        <span>Rotta in parsec e direzione</span>
+        <input id="c-rotta" type="text" placeholder="10 N, +5 E" autocomplete="off" inputmode="text">
+      </label>
+      <div class="fila-campi">
+        <label class="campo"><span>Serbatoi</span><input id="c-serbatoi" type="number" min="1" max="12" value="3"></label>
+        <label class="campo"><span>Radar</span><input id="c-radar" type="number" min="0" max="3" value="3"></label>
+        <label class="campo"><span>Computer</span><input id="c-computer" type="number" min="0" max="6" value="2"></label>
+      </div>
+      <label class="scelta-atterraggio">
+        <input id="c-atterraggio" type="checkbox"> Dichiara <strong>ATTERRAGGIO</strong>
+      </label>
+      <button id="c-dichiara" class="bottone-grande" type="button">Dichiara allo Spazio Computer</button>
+      <p class="nota-comando">
+        Direzioni: <code>N NE E SE S SO O NO</code> · livello: <code>SU</code>/<code>GIU</code>.
+        La dichiarazione arriva allo S.C., che la esegue dalla cella: gli esiti compaiono nel registro.
+      </p>
+    </div>
+  </section>
+
+  <section class="pannello">
+    <h2>Tabula Spatii <small>conoscenza della flotta</small></h2>
+    <div class="strumenti-schizzo">
+      <button id="modo-schizzo" class="chip-strumento" type="button" aria-pressed="false">✎ Pianifica</button>
+      <div class="tavolozza" id="tavolozza-schizzo" hidden>
+        <button class="chip-strumento attivo" data-schizzo="tappa" type="button">① Tappa</button>
+        <button class="chip-strumento" data-schizzo="segno" type="button">⚑ Segno</button>
+        <button class="chip-strumento" data-schizzo="gomma" type="button">⌫ Gomma</button>
+        <button id="pulisci-schizzo" class="chip-strumento pulisci" type="button">Pulisci</button>
+      </div>
+    </div>
+    <p class="nota-schizzo" id="nota-schizzo" hidden>Segni privati, solo su questo telefono. Tocca le celle per abbozzare la rotta.</p>
+    <div id="tabula" class="tabula-uc"></div>
+    <div class="legenda">
+      <span><i class="chip chip-base"></i> base B</span>
+      <span><i class="chip chip-noto"></i> sistema noto</span>
+      <span><i class="chip chip-barrato"></i> barrato</span>
+      <span><i class="chip chip-mia"></i> avvistato da te</span>
+      <span><i class="chip chip-schizzo"></i> tuo appunto</span>
+    </div>
+  </section>
+
+  <section class="pannello dossier" id="dossier" hidden>
+    <div id="dossier-corpo"></div>
+    <button id="chiudi-dossier" class="bottone-testo" type="button">Chiudi scheda</button>
+  </section>
+
+  <section class="pannello">
+    <h2>Registro di cella <small>pubblico</small></h2>
+    <ol id="registro" class="registro"></ol>
+  </section>
+
+  <p id="linea-stato" class="linea-stato" role="status" aria-live="polite"></p>
+  <a class="bottone-testo" href="/">Cambia nave · esci dal terminale</a>
+
+</div>
+<div class="velo-crt" aria-hidden="true"></div>
+<script src="/terminale.js"></script>
+</body>
+</html>

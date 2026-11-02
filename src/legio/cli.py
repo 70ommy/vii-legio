@@ -57,7 +57,11 @@ def comando_genera(argomenti: argparse.Namespace) -> int:
 def comando_consolle(argomenti: argparse.Namespace) -> int:
     from .server import avvia
 
-    avvia(porta=argomenti.porta, apri_browser=not argomenti.senza_browser)
+    avvia(
+        porta=argomenti.porta,
+        apri_browser=not argomenti.senza_browser,
+        solo_locale=argomenti.solo_locale,
+    )
     return 0
 
 
@@ -71,6 +75,10 @@ def costruisci_parser() -> argparse.ArgumentParser:
     consolle = sotto.add_parser("consolle", help="avvia la consolle grafica dello S.C. (predefinito)")
     consolle.add_argument("--porta", type=int, default=7734)
     consolle.add_argument("--senza-browser", action="store_true", dest="senza_browser")
+    consolle.add_argument(
+        "--solo-locale", action="store_true", dest="solo_locale",
+        help="non esporre la cella alla rete locale: nessun telefono potra' collegarsi",
+    )
     consolle.set_defaults(funzione=comando_consolle)
 
     genera = sotto.add_parser("genera", help="genera una zona di galassia e stampala sul terminale")
@@ -81,7 +89,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     )
     genera.set_defaults(funzione=comando_genera)
 
-    parser.set_defaults(funzione=comando_consolle, porta=7734, senza_browser=False)
+    parser.set_defaults(funzione=comando_consolle, porta=7734, senza_browser=False, solo_locale=False)
     return parser
 
 

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VII LEGIO — Terminale di bordo</title>
+  <!-- Percorsi assoluti: gli asset stanno alla radice, questa pagina e' servita da /. -->
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/ingresso.css">
+</head>
+<body>
+<main class="ingresso">
+
+  <div class="stemma" aria-hidden="true">
+    <svg viewBox="0 0 100 100">
+      <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17"/>
+      <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(60 50 50)"/>
+      <ellipse class="orbita" cx="50" cy="50" rx="46" ry="17" transform="rotate(-60 50 50)"/>
+      <circle class="nucleo" cx="50" cy="50" r="9"/>
+    </svg>
+  </div>
+
+  <h1>VII&nbsp;LEGIO</h1>
+  <p class="sottotitolo">Terminale di bordo · Identificazione dell'Ufficiale Comandante</p>
+
+  <!-- Su questo telefono un U.C. e' gia' registrato: si rientra senza riscegliere. -->
+  <section id="sezione-ripresa" class="riquadro" hidden>
+    <p class="didascalia">Su questo terminale hai preso posto come</p>
+    <div id="ripresa-nave" class="nave-corrente"></div>
+    <button id="bottone-entra" class="bottone bottone-primario">
+      <span class="pittogramma">➤</span> Entra nel terminale
+    </button>
+    <button id="bottone-cambia" class="bottone bottone-testo">Non sei tu? Cambia nave</button>
+  </section>
+
+  <!-- La partita e' avviata: si sceglie la propria nave dall'elenco. -->
+  <section id="sezione-scelta" class="riquadro" hidden>
+    <p class="didascalia">Tocca la tua nave per prendere posto ai comandi.</p>
+    <div id="elenco-navi" class="griglia-navi" role="list"></div>
+  </section>
+
+  <!-- Nessuna partita: il master non ha ancora avviato dalla Consolle. -->
+  <section id="sezione-attesa" class="riquadro" hidden>
+    <p class="sigla">— CANALE IN ATTESA —</p>
+    <p class="didascalia">
+      Lo Spazio Computer non ha ancora aperto una zona di galassia.
+      Il terminale si accende da solo appena la partita comincia.
+    </p>
+  </section>
+
+  <p id="linea-stato" class="linea-stato" role="status" aria-live="polite"></p>
+</main>
+<div class="velo-crt" aria-hidden="true"></div>
+<script src="/ingresso.js"></script>
+</body>
+</html>

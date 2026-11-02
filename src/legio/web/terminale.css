@@ -1,0 +1,412 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Terminale di bordo (/uc) — la plancia personale di un singolo U.C. sul telefono.
+   Colonna unica, bersagli larghi, la propria nave in evidenza. Renderer dedicato
+   (terminale.js): la consolle dello S.C. (app.js) resta intoccata.
+   Riusa le variabili di livrea di style.css.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.terminale {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;      /* dal PC sembra comunque un telefono, comodo per il collaudo */
+  margin: 0 auto;
+  padding: 14px 14px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── barra di testa: chi sei, che turno è ── */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bordo);
+  border-left: 6px solid var(--colore-nave, var(--fosforo));
+  border-radius: var(--raggio);
+  background: linear-gradient(180deg, var(--acciaio-chiaro), var(--acciaio-scuro));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 20px rgba(0, 0, 0, .5);
+}
+.barra .stemma svg { width: 40px; height: 40px; display: block; }
+.barra .stemma .orbita { fill: none; stroke: var(--turchese); stroke-width: 2.4; opacity: .7; }
+.barra .stemma .nucleo { fill: var(--corallo); }
+@media (prefers-reduced-motion: no-preference) {
+  .barra .stemma svg { animation: rotazione-atomica 24s linear infinite; transform-origin: 50% 50%; }
+}
+.barra .titoli { flex: 1 1 auto; min-width: 0; }
+.etichetta-piccola {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--cromo-cupo);
+}
+.barra h1 {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 6vw, 28px);
+  letter-spacing: .08em;
+  color: var(--crema);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stato-turno { text-align: center; }
+.stato-turno strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--fosforo);
+  text-shadow: var(--luce-fosforo);
+}
+
+/* ── pannelli generici ── */
+
+.pannello {
+  padding: 14px;
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio);
+  background: linear-gradient(180deg, var(--acciaio), var(--acciaio-scuro));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.pannello h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ambra);
+}
+.pannello h2 small {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--cromo-cupo);
+  text-transform: none;
+}
+
+/* ── quadro della propria nave ── */
+
+.griglia-stat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 8px;
+}
+.stat {
+  padding: 8px 10px;
+  border: 1px solid var(--bordo-tenue);
+  border-radius: 2px;
+  background: radial-gradient(120% 140% at 50% 0%, #0f1a12, #060a08);
+}
+.stat dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--cromo-cupo);
+}
+.stat dd {
+  margin: 3px 0 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--crema);
+}
+.stat dd.piccolo { font-size: 14px; }
+.ordine-turno {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--cromo);
+  line-height: 1.6;
+}
+.ordine-turno .io { color: var(--fosforo); font-weight: 700; text-shadow: var(--luce-fosforo); }
+
+/* ── modulo di dichiarazione della rotta (3D) ── */
+
+.tocca {
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--cromo);
+  line-height: 1.5;
+}
+.tocca.mio { color: var(--fosforo); text-shadow: var(--luce-fosforo); }
+
+.attesa-dichiarazione {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--ambra);
+  border-radius: 3px;
+  background: rgba(255, 194, 71, .07);
+  color: var(--crema);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.attesa-dichiarazione .rotta-attesa { font-family: var(--font-mono); color: var(--ambra); letter-spacing: .04em; }
+
+.pannello-comando .campo { display: flex; flex-direction: column; gap: 4px; }
+.pannello-comando .campo span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--cromo-cupo);
+}
+.pannello-comando input[type="text"],
+.pannello-comando input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--bordo);
+  border-radius: 2px;
+  background: rgba(4, 10, 8, .6);
+  color: var(--crema);
+  font-family: var(--font-mono);
+  font-size: 16px;   /* >=16px: iOS non zooma al focus */
+}
+.pannello-comando input:focus { outline: none; border-color: var(--fosforo); box-shadow: var(--luce-fosforo); }
+.fila-campi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+
+.scelta-atterraggio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--cromo);
+}
+.scelta-atterraggio strong { color: var(--corallo); }
+.scelta-atterraggio input { width: 18px; height: 18px; accent-color: var(--fosforo); }
+
+.bottone-grande {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--fosforo);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(57, 215, 132, .18), rgba(57, 215, 132, .05));
+  color: var(--crema);
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.bottone-grande:active { transform: translateY(1px); }
+
+.mini-bottone {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--corallo);
+  border-radius: 2px;
+  background: none;
+  color: var(--corallo);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.nota-comando {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--cromo-cupo);
+}
+.nota-comando code {
+  font-family: var(--font-mono);
+  color: var(--turchese);
+  font-size: 10.5px;
+}
+
+/* ── TABULA a settori, versione telefono ── */
+
+.settore { margin-bottom: 12px; }
+.settore:last-child { margin-bottom: 0; }
+.settore h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--turchese);
+}
+.scorri-tabula { overflow-x: auto; padding-bottom: 4px; }
+.griglia-tabula { display: grid; gap: 2px; width: max-content; }
+
+.cella {
+  width: 26px;
+  height: 26px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bordo-tenue);
+  border-radius: 2px;
+  background: rgba(4, 10, 8, .55);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+}
+.cella-asse {
+  border: none;
+  background: none;
+  color: var(--cromo-cupo);
+  font-size: 10px;
+}
+.cella-pianeta { cursor: pointer; }
+.cella-pianeta:hover { border-color: var(--cromo); }
+.pianeta-base { color: var(--ambra); text-shadow: 0 0 6px rgba(255, 194, 71, .6); }
+.pianeta-noto { color: var(--fosforo); text-shadow: var(--luce-fosforo); }
+.pianeta-barrato { color: var(--cromo-cupo); }
+.cella.selezionata { outline: 2px solid var(--crema); outline-offset: -2px; }
+/* Sistema avvistato dalla PROPRIA nave: il cuore della vista personale. */
+.cella.mia-scoperta { box-shadow: inset 0 0 0 2px var(--turchese), 0 0 8px rgba(72, 216, 224, .5); }
+
+.gettoni { position: absolute; right: 1px; bottom: 1px; display: flex; gap: 1px; }
+.gettone {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c, var(--cromo));
+  box-shadow: 0 0 4px var(--c, var(--cromo));
+}
+.gettone.mio { width: 9px; height: 9px; outline: 1px solid var(--crema); }
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--cromo);
+}
+.legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.chip { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.chip-base { background: var(--ambra); }
+.chip-noto { background: var(--fosforo); }
+.chip-barrato { background: var(--cromo-cupo); }
+.chip-mia { box-shadow: inset 0 0 0 2px var(--turchese); background: rgba(4, 10, 8, .55); }
+.chip-schizzo { background: var(--corallo); box-shadow: 0 0 4px var(--corallo); }
+
+/* ── matita di pianificazione ── */
+
+.strumenti-schizzo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.tavolozza { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-strumento {
+  padding: 6px 10px;
+  border: 1px solid var(--bordo);
+  border-radius: 999px;
+  background: rgba(4, 10, 8, .5);
+  color: var(--cromo);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+.chip-strumento.attivo { border-color: var(--corallo); color: var(--crema); background: rgba(255, 106, 61, .16); }
+#modo-schizzo.attivo { border-color: var(--corallo); color: var(--corallo); }
+.chip-strumento.pulisci { color: var(--cromo-cupo); }
+.nota-schizzo {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--cromo-cupo);
+}
+
+.tabula-uc.schizzo .cella-giocabile { cursor: crosshair; }
+
+.abbozzo {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  background: var(--corallo);
+  color: #0b0f0d;
+  box-shadow: 0 0 5px var(--corallo);
+}
+
+/* ── dossier del sistema selezionato ── */
+
+.dossier .riga-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--bordo-tenue);
+  font-size: 13px;
+}
+.dossier .riga-info dt { color: var(--cromo-cupo); font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; }
+.dossier .riga-info dd { margin: 0; color: var(--crema); text-align: right; }
+.dossier .intestazione-dossier { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.dossier .sigla-dossier { font-family: var(--font-display); font-size: 22px; color: var(--crema); letter-spacing: .06em; }
+.pastiglia {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.pastiglia-base { color: var(--ambra); }
+.pastiglia-barrato { color: var(--cromo-cupo); }
+.pastiglia-mia { color: var(--turchese); }
+
+/* ── registro pubblico ── */
+
+.registro { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
+.registro li {
+  padding: 7px 9px;
+  border-left: 3px solid var(--bordo);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, .28);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.registro .attore { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--cromo-cupo); }
+.registro li.tipo-danni { border-left-color: var(--corallo); }
+.registro li.tipo-avvistamento, .registro li.tipo-informazione { border-left-color: var(--turchese); }
+.registro li.tipo-punteggio, .registro li.tipo-attivita { border-left-color: var(--ambra); }
+.registro li.tipo-rotta, .registro li.tipo-atterraggio { border-left-color: var(--fosforo-cupo); }
+
+/* ── piè di pagina / stato ── */
+
+.bottone-testo {
+  align-self: center;
+  border: none;
+  background: none;
+  color: var(--cromo);
+  font-family: var(--font-testo);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 4px;
+}
+.linea-stato {
+  min-height: 1.1em;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--corallo);
+}
+.vuoto { color: var(--cromo-cupo); font-style: italic; }

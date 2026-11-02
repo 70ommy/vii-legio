@@ -29,6 +29,11 @@ def carica_guida() -> dict:
     return json.loads((CARTELLA_DATI / "guida_incontri.json").read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=1)
+def carica_tabelle_esterno() -> dict:
+    return json.loads((CARTELLA_DATI / "tabelle_spazio_esterno.json").read_text(encoding="utf-8"))
+
+
 def voce_gi(riferimento: int | str | None) -> dict | None:
     if riferimento is None:
         return None
@@ -214,3 +219,58 @@ def risolvi_attivita(voce: dict, dadiera: Dadiera) -> list[dict]:
             }
         )
     return esiti
+
+
+# --------------------------------------------------------------------------- #
+#  Regolamento avanzato — spazio esterno: TAB. C/O/P
+# --------------------------------------------------------------------------- #
+
+
+def risolvi_danni(numero_danni: int, dadiera: Dadiera) -> dict:
+    """TAB. C — l'effetto materiale di un certo numero di danni.
+
+    Non tira il dado: il numero di danni arriva gia' calcolato da chi chiama
+    (la formula del B.N., o il rischio di massa in atterraggio della TAB. O).
+    """
+    tabella = carica_tabelle_esterno()["TAB_C"]["tabelle"][0]
+    for riga in tabella["per_numero_danni"]:
+        soglia = riga["danni"]
+        if soglia.endswith("+"):
+            if numero_danni >= int(soglia[:-1]):
+                return {"esito": numero_danni, "dati": riga["dati"], "testo": riga["dati"]["effetto"]}
+        elif _faccia_contiene(soglia, numero_danni):
+            return {"esito": numero_danni, "dati": riga["dati"], "testo": riga["dati"]["effetto"]}
+    raise ValueError(f"TAB. C incompleta: nessuna riga per {numero_danni} danni")
+
+
+def risolvi_massa_atterraggio(pianeta: Pianeta, dadiera: Dadiera) -> dict:
+    """TAB. O — rischio di danni per la massa del pianeta, al momento dell'atterraggio.
+
+    Le facce non elencate per una classe di pianeta non comportano danno: il
+    regolamento avanzato descrive solo le facce pericolose, non una copertura
+    completa 1-6 come le altre tabelle.
+    """
+    tabella = _scegli_tabella(carica_tabelle_esterno()["TAB_O"], pianeta.informazioni)
+    if tabella is None:
+        raise ValueError(f"TAB. O: nessuna riga applicabile alla classe di {pianeta.id}")
+    tiro = dadiera.tira(tabella["dado"], f"TAB. O — rischio massa su {pianeta.id}")
+    voce = next((v for v in tabella["esiti"] if _faccia_contiene(v["faccia"], tiro.esito)), None)
+    danni = voce["dati"]["danni"] if voce else 0
+    testo = (
+        f"Atterraggio pesante: {danni} danni per la massa del pianeta."
+        if danni
+        else "Atterraggio senza incidenti di massa."
+    )
+    return {"dado": tiro.dado, "esito": tiro.esito, "danni": danni, "testo": testo}
+
+
+def risolvi_zona_atterraggio(pianeta: Pianeta, dadiera: Dadiera) -> dict:
+    """TAB. P — la zona di atterraggio scelta dall'U.C. (sez. avanzata, parte I·D)."""
+    tabella = _scegli_tabella(carica_tabelle_esterno()["TAB_P"], {})
+    tiro = dadiera.tira(tabella["dado"], f"TAB. P — zona di atterraggio su {pianeta.id}")
+    voce = next((v for v in tabella["esiti"] if _faccia_contiene(v["faccia"], tiro.esito)), None)
+    if voce is None:
+        raise ValueError(f"TAB. P incompleta: {tabella['dado']} → {tiro.esito} non previsto")
+    dati = voce["dati"]
+    testo = f"Zona di atterraggio: {dati['zona']} (presenza aliena {dati['presenza_aliena']})."
+    return {"dado": tiro.dado, "esito": tiro.esito, "dati": dati, "testo": testo}

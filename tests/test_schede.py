@@ -10,7 +10,10 @@ from legio.schede import (
     completa_informazioni,
     prossimo_livello,
     risolvi_attivita,
+    risolvi_danni,
     risolvi_livello,
+    risolvi_massa_atterraggio,
+    risolvi_zona_atterraggio,
     tira_arrivi,
     tira_presenze,
     voce_gi,
@@ -151,6 +154,39 @@ class TestGuidaIncontri(unittest.TestCase):
                     for esito in risolvi_attivita(voce, dadiera):
                         self.assertTrue(esito["testo"])
                         self.assertIn(esito["controllo"], {"U.C.", "S.C."})
+
+
+class TestTabelleSpazioEsterno(unittest.TestCase):
+    def test_risolvi_danni_copre_le_soglie(self):
+        casi = {1: "superficiali", 4: "impianto", 6: "Motori", 9: "distrutta"}
+        for numero, atteso in casi.items():
+            with self.subTest(numero=numero):
+                resoconto = risolvi_danni(numero, Dadiera("DANNI"))
+                self.assertIn(atteso, resoconto["testo"])
+
+    def test_risolvi_danni_senza_riga_applicabile(self):
+        with self.assertRaises(ValueError):
+            risolvi_danni(0, Dadiera("SENZA"))
+
+    def test_risolvi_massa_atterraggio_pianeta_senza_rischio_esplicito(self):
+        pianeta = pianeta_vuoto()
+        pianeta.informazioni["classe"] = "terrestre"
+        dadiera = Dadiera("MASSA")
+        for _ in range(20):
+            self.assertEqual(risolvi_massa_atterraggio(pianeta, dadiera)["danni"], 0)
+
+    def test_risolvi_massa_atterraggio_pianeta_a_rischio(self):
+        pianeta = pianeta_vuoto()
+        pianeta.informazioni["classe"] = "roccioso bruciato"
+        dadiera = Dadiera("MASSARISCHIO")
+        esiti = {risolvi_massa_atterraggio(pianeta, dadiera)["danni"] for _ in range(30)}
+        self.assertEqual(esiti, {0, 1})
+
+    def test_risolvi_zona_atterraggio_copre_tutte_le_facce(self):
+        pianeta = pianeta_vuoto()
+        dadiera = Dadiera("ZONA")
+        zone = {risolvi_zona_atterraggio(pianeta, dadiera)["dati"]["zona"] for _ in range(40)}
+        self.assertEqual(zone, {"APERTA", "RIPARO NATURALE", "PERIFERIA", "SANTUARIO"})
 
 
 if __name__ == "__main__":

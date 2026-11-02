@@ -113,10 +113,14 @@ def scomponi_direzione(dx: int, dy: int) -> str:
     return " + ".join(pezzi)
 
 
+def distanza_piana(a: Posizione, b: Posizione) -> int:
+    """Distanza di Chebyshev sullo stesso piano, senza tener conto del livello."""
+    return max(abs(a.x - b.x), abs(a.y - b.y))
+
+
 def distanza_parsec(a: Posizione, b: Posizione) -> int:
     """Distanza in parsec fra due posizioni, livelli compresi (4 parsec a salto)."""
-    piana = max(abs(a.x - b.x), abs(a.y - b.y))
-    return piana + abs(a.livello - b.livello) * PARSEC_FRA_LIVELLI
+    return distanza_piana(a, b) + abs(a.livello - b.livello) * PARSEC_FRA_LIVELLI
 
 
 # --------------------------------------------------------------------------- #
@@ -212,6 +216,43 @@ class Pianeta:
             "completo": self.completo,
             "alieni_presenti": self.alieni_presenti,
             "noto": bool(self.livelli_noti) or self.base,
+            # Chi ha avvistato questo sistema: la conoscenza resta della flotta (tutti
+            # vedono i sistemi noti), ma il Terminale di bordo evidenzia quelli che la
+            # *propria* nave ha avvistato di persona. Sopravvive a `occulta_per_uc`.
+            "avvistato_da": list(self.avvistato_da),
+        }
+
+
+# --------------------------------------------------------------------------- #
+#  Anomalie (regolamento avanzato — spazio esterno)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class Anomalia:
+    """Un ostacolo statico dello spazio esterno: invisibile ai radar.
+
+    Buco Nero e Distorsione Nullius occupano 1 cella, la Rete Magneto-Gravitazionale
+    3 celle contigue. Piazzata solo a mano (editor del master): il generatore a seme
+    non ne crea.
+    """
+
+    tipo: str  # "BN" | "RMG" | "DN"
+    celle: list[Posizione]
+    raggio_effetto: int | None = None  # solo B.N.: 4 parsec
+
+    @property
+    def id(self) -> str:
+        return f"{self.tipo}-{self.celle[0].riferimento}"
+
+    def in_chiaro(self) -> dict:
+        return {
+            "id": self.id,
+            "tipo": self.tipo,
+            "celle": [
+                {"livello": c.livello, "x": c.x, "y": c.y, "sigla": c.sigla} for c in self.celle
+            ],
+            "raggio_effetto": self.raggio_effetto,
         }
 
 
@@ -227,12 +268,39 @@ class Galassia:
     seme: str
     lato: int = LATO_PREDEFINITO
     pianeti: list[Pianeta] = field(default_factory=list)
+    anomalie: list[Anomalia] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self._indice: dict[Posizione, Pianeta] = {p.posizione: p for p in self.pianeti}
+        self._indice_anomalie: dict[Posizione, Anomalia] = {}
+        for anomalia in self.anomalie:
+            for cella in anomalia.celle:
+                self._indice_anomalie[cella] = anomalia
 
     def reindicizza(self) -> None:
         self._indice = {p.posizione: p for p in self.pianeti}
+
+    def aggiungi_anomalia(self, anomalia: Anomalia) -> None:
+        self.anomalie.append(anomalia)
+        for cella in anomalia.celle:
+            self._indice_anomalie[cella] = anomalia
+
+    def rimuovi_pianeta(self, posizione: Posizione) -> None:
+        self.pianeti = [p for p in self.pianeti if p.posizione != posizione]
+        self.reindicizza()
+
+    def rimuovi_anomalia(self, id: str) -> None:
+        rimossa = next((a for a in self.anomalie if a.id == id), None)
+        if rimossa is None:
+            return
+        self.anomalie.remove(rimossa)
+        self._indice_anomalie = {}
+        for anomalia in self.anomalie:
+            for cella in anomalia.celle:
+                self._indice_anomalie[cella] = anomalia
+
+    def anomalia_a(self, posizione: Posizione) -> Anomalia | None:
+        return self._indice_anomalie.get(posizione)
 
     def a(self, posizione: Posizione) -> Pianeta | None:
         return self._indice.get(posizione)
@@ -261,7 +329,7 @@ class Galassia:
             posizione = pianeta.posizione
             if posizione.livello != centro.livello:
                 continue
-            distanza = max(abs(posizione.x - centro.x), abs(posizione.y - centro.y))
+            distanza = distanza_piana(posizione, centro)
             if distanza <= raggio:
                 trovati.append((pianeta, distanza))
         trovati.sort(key=lambda coppia: (coppia[1], coppia[0].posizione))
@@ -276,4 +344,49 @@ class Galassia:
             "nomi_livello": list(NOMI_LIVELLO),
             "parsec_fra_livelli": PARSEC_FRA_LIVELLI,
             "pianeti": [p.in_chiaro() for p in self.pianeti],
+            "anomalie": [a.in_chiaro() for a in self.anomalie],
         }
+
+    @classmethod
+    def da_dict(cls, dati: dict) -> Galassia:
+        """Ricostruisce una Galassia da un dict prodotto da `in_chiaro()` (import editor)."""
+        pianeti = []
+        for p in dati.get("pianeti", []):
+            posizione = Posizione(p["livello"], p["x"], p["y"])
+            pianeti.append(
+                Pianeta(
+                    posizione=posizione,
+                    base=bool(p.get("base")),
+                    informazioni=dict(p.get("informazioni") or {}),
+                    livelli_noti=list(p.get("livelli_noti") or []),
+                    barrato=bool(p.get("barrato")),
+                    avvistato_da=list(p.get("avvistato_da") or []),
+                    alieni_presenti=p.get("alieni_presenti"),
+                )
+            )
+        galassia = cls(seme=dati["seme"], lato=int(dati["lato"]), pianeti=pianeti)
+        galassia.reindicizza()
+        for a in dati.get("anomalie", []):
+            celle = [Posizione(c["livello"], c["x"], c["y"]) for c in a["celle"]]
+            galassia.aggiungi_anomalia(
+                Anomalia(tipo=a["tipo"], celle=celle, raggio_effetto=a.get("raggio_effetto"))
+            )
+        return galassia
+
+
+def occulta_per_uc(galassia: dict) -> dict:
+    """Filtra una galassia gia' serializzata per la vista dei Comandanti.
+
+    Regola unica per la partita in corso (`Sessione.in_chiaro`) e per l'anteprima
+    dell'editor: le due viste non devono poter divergere, altrimenti il master
+    proverebbe la plancia sulla bozza e vedrebbe qualcosa di diverso da cio' che
+    i giocatori vedranno davvero.
+    """
+    filtrata = dict(galassia)
+    filtrata["pianeti"] = [
+        p for p in galassia["pianeti"] if p["noto"] or p["base"] or p["barrato"]
+    ]
+    filtrata["seme"] = "— RISERVATO —"
+    # Le anomalie non sono mai rilevabili dai radar: restano occulte agli U.C.
+    filtrata["anomalie"] = []
+    return filtrata

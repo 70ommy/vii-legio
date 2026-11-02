@@ -12,6 +12,15 @@ const stato = {
   vistaMappa: 'settori',
   selezione: null,
   tabelle: null,
+  modoCreazione: 'seme',
+  editor: {
+    attivo: false,
+    strumento: null,
+    rmgBuffer: [],
+    bozza: null,
+    validazione: null,
+    selezione: null,
+  },
 };
 
 const CELLA_SETTORI = 22;
@@ -81,13 +90,9 @@ function centroCella(livello, x, y, lato) {
   };
 }
 
-function disegnaSettori(dati) {
-  const g = dati.galassia;
+function disegnaGrigliaLivelli(g) {
   const lato = g.lato;
-  const largo = larghezzaSettore(lato) * 2 + DIVARIO_SETTORI;
-  const alto = altezzaSettore(lato) * 2 + DIVARIO_SETTORI;
   const pezzi = [];
-
   for (let livello = 0; livello < 4; livello += 1) {
     const { ox, oy } = originaSettore(livello, lato);
     const x0 = ox + MARGINE_SX;
@@ -112,6 +117,15 @@ function disegnaSettori(dati) {
     }
     pezzi.push(`</g>`);
   }
+  return pezzi;
+}
+
+function disegnaSettori(dati) {
+  const g = dati.galassia;
+  const lato = g.lato;
+  const largo = larghezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const alto = altezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const pezzi = disegnaGrigliaLivelli(g);
 
   pezzi.push(disegnaGittate(dati, lato));
   pezzi.push(disegnaRotte(dati, lato));
@@ -226,6 +240,329 @@ function disegnaSegnalini(dati, lato) {
   }).join('');
 }
 
+/* ───────────────────────────── disegno: editor galassia ───────────────────────────── */
+
+function disegnaCelleEditor(g, lato) {
+  // Una cella gia' occupata da un pianeta o da un'anomalia non e' piu' piazzabile:
+  // il suo click deve arrivare all'elemento che c'e' sopra, non a un rettangolo vuoto.
+  const occupate = new Set(g.pianeti.map((p) => `${p.livello}:${p.x}:${p.y}`));
+  g.anomalie.forEach((a) => a.celle.forEach((c) => occupate.add(`${c.livello}:${c.x}:${c.y}`)));
+  const pezzi = [];
+  for (let livello = 0; livello < 4; livello += 1) {
+    const { ox, oy } = originaSettore(livello, lato);
+    const x0 = ox + MARGINE_SX;
+    const y0 = oy + MARGINE_SU;
+    for (let x = 0; x < lato; x += 1) {
+      for (let y = 0; y < lato; y += 1) {
+        if (occupate.has(`${livello}:${x}:${y}`)) continue;
+        const scelta = stato.editor.rmgBuffer.some((c) => c.livello === livello && c.x === x && c.y === y);
+        pezzi.push(`<rect class="editor-cella${scelta ? ' editor-cella-scelta' : ''}" data-editor-cella="1"
+          x="${x0 + x * CELLA_SETTORI}" y="${y0 + y * CELLA_SETTORI}" width="${CELLA_SETTORI}" height="${CELLA_SETTORI}"
+          data-livello="${livello}" data-x="${x}" data-y="${y}"/>`);
+      }
+    }
+  }
+  return pezzi.join('');
+}
+
+function disegnaAnomalieEditor(g, lato) {
+  const pezzi = [];
+  g.anomalie.forEach((a) => {
+    a.celle.forEach((cella) => {
+      const { cx, cy } = centroCella(cella.livello, cella.x, cella.y, lato);
+      pezzi.push(`<g class="anomalia anomalia-${esc(a.tipo.toLowerCase())}" data-anomalia="${esc(a.id)}">`);
+      if (a.tipo === 'BN' && a.raggio_effetto) {
+        pezzi.push(`<circle class="anteprima-bn" cx="${cx}" cy="${cy}" r="${a.raggio_effetto * CELLA_SETTORI}"/>`);
+      }
+      // Bersaglio di click esteso a tutta la cella: il solo pittogramma da 6.5px
+      // costringerebbe a centrare il colpo per selezionare o eliminare l'anomalia.
+      pezzi.push(`<rect class="area-anomalia" x="${cx - CELLA_SETTORI / 2}" y="${cy - CELLA_SETTORI / 2}" width="${CELLA_SETTORI}" height="${CELLA_SETTORI}"/>`);
+      pezzi.push(`<circle class="segno-anomalia" cx="${cx}" cy="${cy}" r="6.5"/>`);
+      pezzi.push(`<text class="sigla-anomalia" x="${cx}" y="${cy + 3}" text-anchor="middle">${esc(a.tipo)}</text>`);
+      pezzi.push(`<title>${esc(a.id)}</title>`);
+      pezzi.push('</g>');
+    });
+    if (a.tipo === 'RMG' && a.celle.length > 1) {
+      const punti = a.celle.map((c) => { const p = centroCella(c.livello, c.x, c.y, lato); return `${p.cx},${p.cy}`; }).join(' ');
+      pezzi.push(`<polyline class="anteprima-rmg" points="${punti}"/>`);
+    }
+  });
+  return pezzi.join('');
+}
+
+function disegnaPianetiEditor(g, lato) {
+  return g.pianeti.map((p) => {
+    const { cx, cy } = centroCella(p.livello, p.x, p.y, lato);
+    const sel = stato.editor.selezione;
+    const scelto = sel && sel.genere === 'pianeta' && sel.livello === p.livello && sel.x === p.x && sel.y === p.y;
+    const pezzi = [`<g class="sistema" data-editor-pianeta="${p.livello}:${p.x}:${p.y}">`];
+    pezzi.push(`<circle class="alone" cx="${cx}" cy="${cy}" r="10" fill="rgba(255,194,71,.18)"/>`);
+    if (p.base) {
+      pezzi.push(`<circle class="anello-base" cx="${cx}" cy="${cy}" r="8.5"/>`);
+      pezzi.push(`<circle class="disco-base" cx="${cx}" cy="${cy}" r="5.2"/>`);
+      pezzi.push(`<text class="lettera-base" x="${cx}" y="${cy + 2.6}" text-anchor="middle">B</text>`);
+    } else {
+      pezzi.push(`<circle class="disco-ignoto" cx="${cx}" cy="${cy}" r="4.2"/>`);
+    }
+    if (scelto) pezzi.push(`<circle class="selezionato" cx="${cx}" cy="${cy}" r="11"/>`);
+    const nome = p.informazioni?.tipo ? `${p.informazioni.tipo} (${p.informazioni.codice || ''})` : '';
+    pezzi.push(`<text class="sigla-sistema" x="${cx}" y="${cy + 15}" text-anchor="middle">${esc(p.sigla)}</text>`);
+    if (nome) pezzi.push(`<text class="nome-sistema" x="${cx}" y="${cy + 22.5}" text-anchor="middle">${esc(nome)}</text>`);
+    pezzi.push('</g>');
+    return pezzi.join('');
+  }).join('');
+}
+
+function anteprimaUc() {
+  return $('#campo-vista-uc').checked;
+}
+
+function costruisciSvgEditor(g) {
+  const lato = g.lato;
+  const largo = larghezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const alto = altezzaSettore(lato) * 2 + DIVARIO_SETTORI;
+  const pezzi = disegnaGrigliaLivelli(g);
+  // Nell'anteprima della plancia U.C. non si piazza nulla: e' la vista dei giocatori,
+  // non un piano di lavoro. Senza celle cliccabili l'errore diventa impossibile.
+  if (!anteprimaUc()) pezzi.push(disegnaCelleEditor(g, lato));
+  pezzi.push(disegnaAnomalieEditor(g, lato));
+  pezzi.push(disegnaPianetiEditor(g, lato));
+  return `<svg viewBox="-6 -4 ${largo + 12} ${alto + 10}" role="img" aria-label="Editor Tabula Spatii">${pezzi.join('')}</svg>`;
+}
+
+function disegnaEditorTela() {
+  if (!stato.editor.bozza) {
+    $('#tela').innerHTML = '';
+  } else if (stato.vistaMappa === 'stereoscopio') {
+    // Lo stereoscopio non ha una griglia di celle su cui piazzare: e' una verifica
+    // a sola lettura di come i 4 livelli si impilano (utile soprattutto per il B.N.).
+    $('#tela').innerHTML = disegnaStereoscopio({ galassia: stato.editor.bozza, navi: [] });
+  } else {
+    $('#tela').innerHTML = costruisciSvgEditor(stato.editor.bozza);
+  }
+  aggiornaValidazioneEditor(stato.editor.validazione);
+  aggiornaIstruzioneEditor();
+  // Il pannello proprieta' segue sempre la bozza: se il pianeta selezionato non
+  // esiste piu' (eliminato, o bozza ricaricata) la scheda va chiusa, non lasciata li'.
+  const sel = stato.editor.selezione;
+  const pianeta = sel && stato.editor.bozza
+    ? stato.editor.bozza.pianeti.find((p) => p.livello === sel.livello && p.x === sel.x && p.y === sel.y)
+    : null;
+  if (!pianeta) stato.editor.selezione = null;
+  aggiornaProprietaEditor(pianeta);
+}
+
+function aggiornaValidazioneEditor(validazione) {
+  const lista = $('#validazione-editor');
+  if (!validazione) { lista.innerHTML = ''; return; }
+  const voci = [
+    ...validazione.errori.map((v) => ({ ...v, classe: 'validazione-errore', segno: '❌' })),
+    ...validazione.avvisi.map((v) => ({ ...v, classe: 'validazione-avviso', segno: '⚠️' })),
+    ...validazione.info.map((v) => ({ ...v, classe: 'validazione-info', segno: 'ℹ️' })),
+  ];
+  lista.innerHTML = voci.length
+    ? voci.map((v) => `<li class="riga-validazione ${v.classe}">${v.segno} ${esc(v.messaggio)}</li>`).join('')
+    : '<li class="vuoto">Nessuna bozza in costruzione.</li>';
+}
+
+function aggiornaIstruzioneEditor() {
+  const testi = {
+    pianeta: 'Clicca una cella libera per piazzare un pianeta.',
+    base: 'Clicca una cella libera per piazzare il pianeta base (rimpiazza quella precedente).',
+    bn: 'Clicca una cella: il Buco Nero viene propagato automaticamente sui 4 livelli.',
+    rmg: `Clicca 3 celle contigue sullo stesso livello (selezionate finora: ${stato.editor.rmgBuffer.length}/3).`,
+    dn: 'Clicca una cella per piazzare una Distorsione Nullius.',
+    elimina: "Clicca un pianeta o un'anomalia per eliminarli.",
+  };
+  let testo;
+  if (anteprimaUc()) {
+    testo = 'Anteprima Plancia U.C.: ecco cosa vedranno i giocatori. Per modificare, togli la spunta.';
+  } else if (stato.vistaMappa === 'stereoscopio') {
+    testo = 'Lo stereoscopio è di sola lettura: torna a "Quattro settori" per piazzare.';
+  } else {
+    testo = stato.editor.strumento
+      ? (testi[stato.editor.strumento] || '')
+      : 'Seleziona uno strumento della barra qui sopra.';
+  }
+  $('#istruzione-editor').textContent = testo;
+}
+
+function aggiornaProprietaEditor(pianeta) {
+  const nodo = $('#proprieta-editor');
+  if (!pianeta) { nodo.hidden = true; nodo.innerHTML = ''; return; }
+  nodo.hidden = false;
+  nodo.innerHTML = `
+    <p class="nota-pannello">Pianeta in ${esc(pianeta.sigla)}, livello ${pianeta.livello + 1}.</p>
+    <label class="interruttore compatto">
+      <input type="checkbox" id="editor-prop-base" ${pianeta.base ? 'checked' : ''}>
+      <span class="leva"></span>
+      <span class="etichetta-leva">Pianeta Base</span>
+    </label>
+    <label class="campo">
+      <span>Tipo</span>
+      <input id="editor-prop-tipo" type="text" value="${esc(pianeta.informazioni?.tipo || '')}">
+    </label>
+    <label class="campo">
+      <span>Codice</span>
+      <input id="editor-prop-codice" type="text" value="${esc(pianeta.informazioni?.codice || '')}">
+    </label>
+    <div class="fila-bottoni">
+      <button id="editor-prop-salva" class="bottone bottone-piccolo">Salva</button>
+      <button id="editor-prop-elimina" class="bottone bottone-piccolo">Elimina</button>
+    </div>`;
+  $('#editor-prop-salva').addEventListener('click', async () => {
+    try {
+      await chiama('/api/editor/pianeta', {
+        livello: pianeta.livello, x: pianeta.x, y: pianeta.y,
+        base: $('#editor-prop-base').checked,
+        tipo: $('#editor-prop-tipo').value.trim(),
+        codice: $('#editor-prop-codice').value.trim(),
+      });
+      await caricaBozzaEditor();
+      avvisa('Proprietà del pianeta salvate.', 'esito');
+    } catch (errore) { avvisa(errore.message); }
+  });
+  $('#editor-prop-elimina').addEventListener('click', async () => {
+    try {
+      await chiama('/api/editor/elimina', { genere: 'pianeta', livello: pianeta.livello, x: pianeta.x, y: pianeta.y });
+      stato.editor.selezione = null;
+      await caricaBozzaEditor();
+    } catch (errore) { avvisa(errore.message); }
+  });
+}
+
+function selezionaPianetaEditor(livello, x, y) {
+  const pianeta = stato.editor.bozza?.pianeti.find((p) => p.livello === livello && p.x === x && p.y === y);
+  if (!pianeta) return;
+  stato.editor.selezione = { genere: 'pianeta', livello, x, y };
+  disegnaEditorTela();
+}
+
+async function piazzaSuCella(strumento, livello, x, y) {
+  if (!strumento) {
+    avvisa('Seleziona prima uno strumento nella barra "Editor manuale".');
+    return;
+  }
+  if (strumento === 'pianeta' || strumento === 'base') {
+    await chiama('/api/editor/pianeta', { livello, x, y, base: strumento === 'base' });
+    await caricaBozzaEditor();
+    selezionaPianetaEditor(livello, x, y);
+    return;
+  }
+  if (strumento === 'bn') {
+    await chiama('/api/editor/anomalia', { tipo: 'BN', livello, x, y });
+    await caricaBozzaEditor();
+    return;
+  }
+  if (strumento === 'dn') {
+    await chiama('/api/editor/anomalia', { tipo: 'DN', livello, x, y });
+    await caricaBozzaEditor();
+    return;
+  }
+  if (strumento === 'rmg') {
+    stato.editor.rmgBuffer.push({ livello, x, y });
+    if (stato.editor.rmgBuffer.length < 3) {
+      disegnaEditorTela();
+      return;
+    }
+    const celle = stato.editor.rmgBuffer;
+    stato.editor.rmgBuffer = [];
+    await chiama('/api/editor/anomalia', { tipo: 'RMG', celle });
+    await caricaBozzaEditor();
+  }
+}
+
+async function gestisciClickEditor(evento) {
+  if (anteprimaUc() || stato.vistaMappa === 'stereoscopio') return;  // viste di sola lettura
+  const nodoAnomalia = evento.target.closest('[data-anomalia]');
+  const nodoPianeta = evento.target.closest('[data-editor-pianeta]');
+  const nodoCella = evento.target.closest('[data-editor-cella]');
+  const strumento = stato.editor.strumento;
+  try {
+    if (nodoAnomalia) {
+      if (strumento === 'elimina') {
+        await chiama('/api/editor/elimina', { genere: 'anomalia', id: nodoAnomalia.dataset.anomalia });
+        await caricaBozzaEditor();
+      }
+      return;
+    }
+    if (nodoPianeta) {
+      const [livello, x, y] = nodoPianeta.dataset.editorPianeta.split(':').map(Number);
+      if (strumento === 'elimina') {
+        await chiama('/api/editor/elimina', { genere: 'pianeta', livello, x, y });
+        stato.editor.selezione = null;
+        await caricaBozzaEditor();
+      } else {
+        selezionaPianetaEditor(livello, x, y);
+      }
+      return;
+    }
+    if (nodoCella) {
+      await piazzaSuCella(strumento, Number(nodoCella.dataset.livello), Number(nodoCella.dataset.x), Number(nodoCella.dataset.y));
+    }
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function caricaBozzaEditor() {
+  const vista = anteprimaUc() ? 'uc' : 'sc';
+  const risposta = await chiama(`/api/editor/stato?vista=${vista}`);
+  stato.editor.bozza = risposta.bozza;
+  stato.editor.validazione = risposta.validazione;
+  disegnaEditorTela();
+}
+
+async function nuovaBozza() {
+  try {
+    await chiama('/api/editor/nuova', { lato: Number($('#campo-editor-lato').value) });
+    stato.editor.selezione = null;
+    stato.editor.rmgBuffer = [];
+    await caricaBozzaEditor();
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function esportaBozza() {
+  try {
+    const dati = await chiama('/api/editor/esporta');
+    const url = URL.createObjectURL(new Blob([JSON.stringify(dati, null, 2)], { type: 'application/json' }));
+    const collegamento = document.createElement('a');
+    collegamento.href = url;
+    collegamento.download = `galassia-${dati.seme}.json`;
+    collegamento.click();
+    URL.revokeObjectURL(url);
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function importaBozza(file) {
+  try {
+    const testo = await file.text();
+    await chiama('/api/editor/importa', JSON.parse(testo));
+    stato.editor.selezione = null;
+    stato.editor.rmgBuffer = [];
+    await caricaBozzaEditor();
+    avvisa('Bozza importata.', 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+function impostaModoCreazione(modo) {
+  document.querySelectorAll('[data-modo-creazione]').forEach((b) => {
+    b.classList.toggle('attiva', b.dataset.modoCreazione === modo);
+  });
+  stato.modoCreazione = modo;
+  stato.editor.attivo = modo === 'editor';
+  $('#campi-seme').hidden = modo !== 'seme';
+  $('#pannello-editor').hidden = modo !== 'editor';
+  $('#bottone-genera').innerHTML = modo === 'editor'
+    ? '<span class="pittogramma">◈</span> Avvia partita con questa galassia'
+    : '<span class="pittogramma">◈</span> Genera la zona di galassia';
+  if (modo === 'editor') {
+    if (!stato.editor.bozza) caricaBozzaEditor();
+    else disegnaEditorTela();
+  } else {
+    aggiornaProprietaEditor(null);
+    disegna();  // tornando al seme la tela deve rimostrare la partita in corso
+  }
+}
+
 /* ───────────────────────────── disegno: stereoscopio ───────────────────────────── */
 
 function profonditaPiano(lato) { return 2 * (lato - 1) * ISO_Y * CELLA_STEREO; }
@@ -300,6 +637,17 @@ function disegnaStereoscopio(dati) {
       if (punti.length > 1) {
         pezzi.push(`<polyline class="linea-rotta" points="${punti.join(' ')}" stroke="${esc(n.colore)}"/>`);
       }
+    });
+
+    // Le anomalie compaiono solo dove esistono (bozza dell'editor, mai in vista U.C.).
+    (g.anomalie || []).forEach((a) => {
+      a.celle.filter((c) => c.livello === livello).forEach((c) => {
+        const q = proiettaStereo(livello, c.x, c.y, lato);
+        pezzi.push(`<g class="anomalia anomalia-${esc(a.tipo.toLowerCase())}">`);
+        pezzi.push(`<circle class="segno-anomalia" cx="${q.px}" cy="${q.py - 5}" r="6"/>`);
+        pezzi.push(`<text class="sigla-anomalia" x="${q.px}" y="${q.py - 2.6}" text-anchor="middle">${esc(a.tipo)}</text>`);
+        pezzi.push(`<title>${esc(a.id)}</title></g>`);
+      });
     });
 
     g.pianeti.filter((p) => p.livello === livello).forEach((p) => pezzi.push(sistemaStereo(p, lato)));
@@ -445,13 +793,51 @@ function bloccoGi(voce, riferimento) {
     </div>`;
 }
 
+function aggiornaDichiarazioni(dati) {
+  const tocca = $('#sc-tocca');
+  tocca.textContent = dati.turno_di
+    ? `Ordine di turno (morbido): ora toccherebbe a ${dati.turno_di}.`
+    : 'In questo turno hanno mosso tutti.';
+  const lista = $('#dichiarazioni-attesa');
+  const inAttesa = (dati.navi || []).filter((n) => n.dichiarazione_in_attesa);
+  if (!inAttesa.length) {
+    lista.innerHTML = '<li class="vuoto">Nessuna dichiarazione in attesa dai Terminali.</li>';
+    return;
+  }
+  lista.innerHTML = inAttesa.map((n) => {
+    const d = n.dichiarazione_in_attesa;
+    return `
+      <li class="dichiarazione" data-nave="${esc(n.nome)}">
+        <div class="cap-dichiarazione">
+          <span class="bandiera-nave" style="background:${esc(n.colore)}"></span>
+          <b>${esc(n.nome)}</b>
+        </div>
+        <div class="corpo-dichiarazione">
+          <span class="rotta-dich">${esc(d.rotta)}</span>${d.atterraggio ? ' · <b>ATTERRAGGIO</b>' : ''}
+          <small>${d.serbatoi} serbatoi · ${d.radar} radar · ${d.computer ?? '—'} computer</small>
+        </div>
+        <div class="azioni-dichiarazione">
+          <button class="bottone bottone-piccolo" data-risolvi="${esc(n.nome)}">Risolvi</button>
+          <button class="bottone bottone-piccolo" data-annulla-dich="${esc(n.nome)}">Annulla</button>
+        </div>
+      </li>`;
+  }).join('');
+}
+
 function disegna() {
   if (!stato.dati) return;
   aggiornaTesta(stato.dati);
-  $('#tela').innerHTML = stato.vistaMappa === 'stereoscopio'
-    ? disegnaStereoscopio(stato.dati)
-    : disegnaSettori(stato.dati);
+  // In modo editor la tela appartiene alla bozza: un aggiornamento della partita
+  // (per esempio il toggle Plancia U.C.) non deve cancellare la galassia in costruzione.
+  if (stato.editor.attivo) {
+    disegnaEditorTela();
+  } else {
+    $('#tela').innerHTML = stato.vistaMappa === 'stereoscopio'
+      ? disegnaStereoscopio(stato.dati)
+      : disegnaSettori(stato.dati);
+  }
   aggiornaNavi(stato.dati);
+  aggiornaDichiarazioni(stato.dati);
   aggiornaRegistro(stato.dati);
   aggiornaDossier();
   aggiornaAutonomia();
@@ -459,22 +845,113 @@ function disegna() {
 
 /* ───────────────────────────── comandi ───────────────────────────── */
 
+let ultimaImpronta = null;   // per il polling: si ridisegna solo quando lo stato cambia davvero
+
 async function caricaStato() {
   const vista = $('#campo-vista-uc').checked ? 'uc' : 'sc';
   stato.dati = await chiama(`/api/stato?vista=${vista}`);
+  ultimaImpronta = JSON.stringify(stato.dati);
   disegna();
+}
+
+async function sincronizza() {
+  // Battito leggero: fa comparire da sé le dichiarazioni dai Terminali e le mosse
+  // altrui, senza toccare i moduli che il master sta compilando. Non ridisegna se
+  // nulla è cambiato (niente sfarfallio) e sta ferma mentre si costruisce una galassia.
+  if (stato.editor.attivo || document.hidden) return;
+  try {
+    const vista = $('#campo-vista-uc').checked ? 'uc' : 'sc';
+    const dati = await chiama(`/api/stato?vista=${vista}`);
+    const impronta = JSON.stringify(dati);
+    if (impronta === ultimaImpronta) return;
+    ultimaImpronta = impronta;
+    stato.dati = dati;
+    disegna();
+  } catch (errore) {
+    // silenzioso: la consolle non deve urlare a ogni battito perso
+  }
+}
+
+async function risolviDichiarazione(nave) {
+  try {
+    const risposta = await chiama('/api/dichiarazione/risolvi', { nave });
+    await caricaStato();
+    const comunicazioni = risposta.esito.movimento?.comunicazioni || [];
+    avvisa(comunicazioni.join('  ·  ') || `Rotta di ${nave} eseguita.`, 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+async function annullaDichiarazioneSC(nave) {
+  try {
+    await chiama('/api/dichiarazione/annulla', { nave });
+    await caricaStato();
+    avvisa(`Dichiarazione di ${nave} annullata.`, 'esito');
+  } catch (errore) { avvisa(errore.message); }
+}
+
+function aggiornaDettagliNavi() {
+  const contenitore = $('#dettagli-navi-esterno');
+  const esterno = $('#campo-esterno').checked;
+  const nomi = $('#campo-ufficiali').value.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+  contenitore.hidden = !esterno || !nomi.length;
+  if (contenitore.hidden) return;
+  const precedenti = stato.dettagliNavi || {};
+  $('#righe-dettagli-navi').innerHTML = nomi.map((nome) => {
+    const classe = precedenti[nome]?.classe_massa ?? 2;
+    const psi = precedenti[nome]?.princeps_psi ?? false;
+    return `
+      <div class="riga-dettaglio-nave" data-nome="${esc(nome)}">
+        <span class="nome-nave-dettaglio">${esc(nome)}</span>
+        <label class="campo">
+          <span>Classe/massa</span>
+          <select class="campo-classe-massa">
+            <option value="1" ${classe === 1 ? 'selected' : ''}>1 · leggera</option>
+            <option value="2" ${classe === 2 ? 'selected' : ''}>2 · media</option>
+            <option value="3" ${classe === 3 ? 'selected' : ''}>3 · pesante</option>
+          </select>
+        </label>
+        <label class="interruttore compatto">
+          <input type="checkbox" class="campo-princeps-psi" ${psi ? 'checked' : ''}>
+          <span class="leva"></span>
+          <span class="etichetta-leva">Princeps Psi</span>
+        </label>
+      </div>`;
+  }).join('');
+}
+
+function leggiDettagliNavi() {
+  const dettagli = {};
+  document.querySelectorAll('#righe-dettagli-navi .riga-dettaglio-nave').forEach((riga) => {
+    dettagli[riga.dataset.nome] = {
+      classe_massa: Number(riga.querySelector('.campo-classe-massa').value),
+      princeps_psi: riga.querySelector('.campo-princeps-psi').checked,
+    };
+  });
+  stato.dettagliNavi = dettagli;
+  return dettagli;
 }
 
 async function generaZona() {
   const ufficiali = $('#campo-ufficiali').value.split(',').map((s) => s.trim()).filter(Boolean);
+  const spazioEsterno = $('#campo-esterno').checked;
+  const dettagliNavi = spazioEsterno ? leggiDettagliNavi() : undefined;
   try {
-    await chiama('/api/nuova', {
-      seme: $('#campo-seme').value,
-      lato: Number($('#campo-lato').value),
-      distribuzione: $('#campo-distribuzione').value,
-      ufficiali,
-      spazio_esterno: $('#campo-esterno').checked,
-    });
+    if (stato.modoCreazione === 'editor') {
+      await chiama('/api/editor/avvia', { ufficiali, spazio_esterno: spazioEsterno, dettagli_navi: dettagliNavi });
+      stato.editor.bozza = null;
+      stato.editor.validazione = null;
+      stato.editor.selezione = null;
+      impostaModoCreazione('seme');
+    } else {
+      await chiama('/api/nuova', {
+        seme: $('#campo-seme').value,
+        lato: Number($('#campo-lato').value),
+        distribuzione: $('#campo-distribuzione').value,
+        ufficiali,
+        spazio_esterno: spazioEsterno,
+        dettagli_navi: dettagliNavi,
+      });
+    }
     stato.selezione = null;
     await caricaStato();
     avvisa(`Zona creata. Matricola ${stato.dati.galassia.seme}. Gli U.C. non ne sono al corrente.`, 'esito');
@@ -549,7 +1026,13 @@ function collega() {
   $('#bottone-esporta').addEventListener('click', esporta);
   $('#bottone-stampa').addEventListener('click', () => window.print());
   $('#campo-serbatoi').addEventListener('input', aggiornaAutonomia);
-  $('#campo-vista-uc').addEventListener('change', caricaStato);
+  $('#campo-vista-uc').addEventListener('change', async () => {
+    // In modo editor la plancia filtra la bozza, che vive sul server: va richiesta di nuovo.
+    if (stato.editor.attivo) await caricaBozzaEditor();
+    await caricaStato();
+  });
+  $('#campo-esterno').addEventListener('change', aggiornaDettagliNavi);
+  $('#campo-ufficiali').addEventListener('input', aggiornaDettagliNavi);
   $('#campo-nave').addEventListener('change', () => { aggiornaNavi(stato.dati); aggiornaDossier(); });
   $('#campo-rotta').addEventListener('keydown', (evento) => { if (evento.key === 'Enter') eseguiRotta(); });
 
@@ -566,7 +1049,28 @@ function collega() {
   });
   if (location.hash.slice(1) === 'stereoscopio') scegliVista('stereoscopio');
 
+  document.querySelectorAll('[data-modo-creazione]').forEach((bottone) => {
+    bottone.addEventListener('click', () => impostaModoCreazione(bottone.dataset.modoCreazione));
+  });
+  document.querySelectorAll('#strumenti-editor [data-strumento]').forEach((bottone) => {
+    bottone.addEventListener('click', () => {
+      document.querySelectorAll('#strumenti-editor [data-strumento]').forEach((b) => b.classList.toggle('attiva', b === bottone));
+      stato.editor.strumento = bottone.dataset.strumento;
+      stato.editor.rmgBuffer = [];
+      aggiornaIstruzioneEditor();
+    });
+  });
+  $('#bottone-editor-nuovo').addEventListener('click', nuovaBozza);
+  $('#bottone-editor-esporta').addEventListener('click', esportaBozza);
+  $('#bottone-editor-importa').addEventListener('click', () => $('#campo-editor-importa').click());
+  $('#campo-editor-importa').addEventListener('change', (evento) => {
+    const file = evento.target.files[0];
+    evento.target.value = '';
+    if (file) importaBozza(file);
+  });
+
   $('#tela').addEventListener('click', (evento) => {
+    if (stato.editor.attivo) { gestisciClickEditor(evento); return; }
     const sistema = evento.target.closest('[data-pianeta]');
     if (!sistema) return;
     stato.selezione = sistema.dataset.pianeta;
@@ -581,6 +1085,13 @@ function collega() {
     aggiornaDossier();
   });
 
+  $('#dichiarazioni-attesa').addEventListener('click', (evento) => {
+    const risolvi = evento.target.closest('[data-risolvi]');
+    const annulla = evento.target.closest('[data-annulla-dich]');
+    if (risolvi) risolviDichiarazione(risolvi.dataset.risolvi);
+    else if (annulla) annullaDichiarazioneSC(annulla.dataset.annullaDich);
+  });
+
   $('#dossier').addEventListener('click', (evento) => {
     const azione = evento.target.closest('[data-azione]')?.dataset.azione;
     if (azione === 'informa') richiediInformazione();
@@ -590,10 +1101,12 @@ function collega() {
 
 (async function avvia() {
   collega();
+  aggiornaDettagliNavi();
   try {
     stato.tabelle = await chiama('/api/tabelle');
     await caricaStato();
   } catch (errore) {
     avvisa(`Terminale non raggiungibile: ${errore.message}`);
   }
+  setInterval(sincronizza, 2000);  // battito: le dichiarazioni dai Terminali compaiono da sé
 }());

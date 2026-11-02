@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>VII LEGIO — Terminale Spazio Computer</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- Percorsi assoluti: la consolle e' servita da /sc/<codice>, i relativi si romperebbero. -->
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="scafo">
@@ -39,7 +40,11 @@
 
       <section class="pannello">
         <h2 class="titolo-pannello">C · Creazione della zona</h2>
-        <div class="griglia-campi">
+        <div class="selettore" role="tablist" aria-label="Modo di creazione">
+          <button class="scheda attiva" data-modo-creazione="seme">Seme</button>
+          <button class="scheda" data-modo-creazione="editor">Editor manuale</button>
+        </div>
+        <div id="campi-seme" class="griglia-campi">
           <label class="campo campo-largo">
             <span>Matricola (seme)</span>
             <input id="campo-seme" type="text" placeholder="lasciare vuoto = a sorte" autocomplete="off">
@@ -56,15 +61,44 @@
               <option value="ammassata">Ammassata in nebulose</option>
             </select>
           </label>
-          <label class="campo campo-largo">
-            <span>Ufficiali Comandanti (separati da virgola)</span>
-            <input id="campo-ufficiali" type="text" value="LEGIONARIO I, LEGIONARIO II" autocomplete="off">
-          </label>
+        </div>
+        <div id="pannello-editor" class="pannello-editor" hidden>
+          <div class="griglia-campi">
+            <label class="campo">
+              <span>Parsec per lato</span>
+              <input id="campo-editor-lato" type="number" min="6" max="21" value="12">
+            </label>
+          </div>
+          <div class="fila-bottoni">
+            <button id="bottone-editor-nuovo" class="bottone bottone-piccolo">Nuova bozza</button>
+            <button id="bottone-editor-esporta" class="bottone bottone-piccolo">Esporta JSON</button>
+            <button id="bottone-editor-importa" class="bottone bottone-piccolo">Importa JSON</button>
+            <input id="campo-editor-importa" type="file" accept="application/json" hidden>
+          </div>
+          <div class="fila-bottoni" id="strumenti-editor" role="tablist" aria-label="Strumento editor">
+            <button class="scheda" data-strumento="pianeta">Pianeta</button>
+            <button class="scheda" data-strumento="base">Pianeta Base</button>
+            <button class="scheda" data-strumento="bn">Buco Nero</button>
+            <button class="scheda" data-strumento="rmg">R.M.G.</button>
+            <button class="scheda" data-strumento="dn">Distorsione Nullius</button>
+            <button class="scheda" data-strumento="elimina">Elimina</button>
+          </div>
+          <p class="nota-pannello" id="istruzione-editor"></p>
+          <div id="proprieta-editor" class="proprieta-editor" hidden></div>
+          <ul id="validazione-editor" class="registro"></ul>
         </div>
         <label class="interruttore">
           <input id="campo-esterno" type="checkbox">
           <span class="leva"></span>
-          <span class="etichetta-leva">Spazio esterno <small>(attiva la sotto-informazione di radioattività)</small></span>
+          <span class="etichetta-leva">Spazio esterno <small>(radioattività, rischio B.N./R.M.G./D.N., massa e zone d'atterraggio)</small></span>
+        </label>
+        <div id="dettagli-navi-esterno" class="dettagli-navi" hidden>
+          <p class="nota-pannello">Classe/massa e Princeps Psi per ogni nave (regolamento avanzato — assunzioni non confermate dal manuale fisico, vedi README):</p>
+          <div id="righe-dettagli-navi"></div>
+        </div>
+        <label class="campo campo-largo">
+          <span>Ufficiali Comandanti (separati da virgola)</span>
+          <input id="campo-ufficiali" type="text" value="LEGIONARIO I, LEGIONARIO II" autocomplete="off">
         </label>
         <button id="bottone-genera" class="bottone bottone-primario">
           <span class="pittogramma">◈</span> Genera la zona di galassia
@@ -116,6 +150,12 @@
           Direzioni: <code>N NE E SE S SO O NO</code> · cambio di livello: <code>SU</code> / <code>GIU</code>
           (4 parsec a salto). La rotta non deve essere in linea retta: <code>6 NE, 4 GIU, 3 O</code>.
         </p>
+      </section>
+
+      <section class="pannello pannello-dichiarazioni">
+        <h2 class="titolo-pannello">Dichiarazioni dai Terminali</h2>
+        <p class="nota-pannello" id="sc-tocca"></p>
+        <ul id="dichiarazioni-attesa" class="dichiarazioni"></ul>
       </section>
 
       <section class="pannello">
@@ -176,6 +216,6 @@
   <div id="avviso" class="avviso" role="status" aria-live="polite"></div>
   <div class="velo-crt" aria-hidden="true"></div>
 </div>
-<script src="app.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
